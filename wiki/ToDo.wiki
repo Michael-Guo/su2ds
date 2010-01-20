@@ -1,0 +1,6 @@
+=== Josh's to-do list ===
+
+Things that need to be dealt with:
+
+  # REPLMARKS: I'd love to get every reference to this completely removed from the code assuming it's possible
+  # Radiance dialogue: I'm pretty sure I won't need any of the Radiance rendering options in @radOpts; thus, if I can, I should try to rid the code of all references to @radOpts and the RadianceOptions dialogue entirely. This should probably wait until I have a better idea of how everything fits together.
