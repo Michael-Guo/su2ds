@@ -71,7 +71,7 @@ class PreferencesDialog
         @showradopts = true                        ## show Radiance option dialog
         @exportallviews = false                     ## export all saved views
 
-        @supportdir = '/Library/Application Support/Google Sketchup 6/Sketchup'
+        @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'
         @build_material_lib = false                 ## update/create material library in file system
        
         printf "\n=====\nPreferencesDialog('#{filepath}')\n=====\n"

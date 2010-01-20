@@ -12,24 +12,24 @@ class MaterialLibrary < ExportBase
 
     def initLibrary
         initLog()
-        uimessage("init material library ...", 1)
-        if $SUPPORTDIR == '' or $SUPPORTDIR == nil
+        uimessage("init material library...", 1)
+        if $SUPPORTDIR == '' or $SUPPORTDIR == nil ## $SUPPORTDIR = '/Library/Application Support/Google Sketchup 7/Sketchup'
             uimessage("Warning: '$SUPPORTDIR' is not set. No materials available.")
             return
         end
-        mdir = File.join($SUPPORTDIR, 'Materials')
+        mdir = File.join($SUPPORTDIR, 'Materials') ## mdir = /Library/Application Support/Google Sketchup 7/Sketchup/Materials -- this is where all the sketchup material files are located
         if not FileTest.directory?(mdir)
             uimessage("Warning: directory 'Materials' not found. No materials available.")
             return
         end
-        lst = getSKMFiles(mdir)
+        lst = getSKMFiles(mdir) ## lst is an array of all of the material files from the Sketchup materials directory
         uimessage("=> %d materials found" % lst.length, 2)
         lst.each { |path|
             filename = File.split(path)[1]
             matname = filename[0,filename.length-4]
             @sketchup_materials[matname] = path
             radname = path.sub('.skm', '.rad')
-            if File.exists?(radname)
+            if File.exists?(radname)  ## checks Sketchup materials directory for radiance-format version of each materials file
                 uimessage("  material file '%s' found" % radname, 3)
                 begin
                     f = File.new(radname, 'r')

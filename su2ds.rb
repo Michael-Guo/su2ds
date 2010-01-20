@@ -63,6 +63,17 @@ if $DEBUG
     load "su2dslib/radiancescene.rb"
 end
 
+## simple method for reloading all script files from console
+def loadScripts
+    load "su2dslib/preferences.rb"
+    load "su2dslib/exportbase.rb"
+    load "su2dslib/interface.rb"
+    load "su2dslib/numeric.rb"
+    load "su2dslib/material.rb"
+    load "su2dslib/radiance_entities.rb"
+    load "su2dslib/radiancescene.rb"
+end
+
 
 ## define defaults if config file is messed up
 $BUILD_MATERIAL_LIB = false
@@ -74,7 +85,7 @@ $RAD                = ''
 $REPLMARKS          = '/usr/local/bin/replmarks' 
 $PREVIEW            = false        
 $SHOWRADOPTS        = true
-$SUPPORTDIR         = '/Library/Application Support/Google Sketchup 6/Sketchup'
+$SUPPORTDIR         = '/Library/Application Support/Google Sketchup 7/Sketchup'
 $TRIANGULATE        = false    
 $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radiance)
 $UTC_OFFSET         = nil
@@ -89,7 +100,7 @@ $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 
 def startExport(selected_only=0)
     begin
-        $MatLib = MaterialLibrary.new()
+        $MatLib = MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
         rs = RadianceScene.new()
         rs.export(selected_only)
     rescue => e 
@@ -144,7 +155,6 @@ def runTest
     sky = RadianceSky.new()
     sky.test()
 end
-
 
 
 if $DEBUG
