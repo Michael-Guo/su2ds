@@ -218,15 +218,16 @@ class ExportBase
             ui_result = (UI.messagebox "Remove existing directory\n'#{scene_name}'?", MB_OKCANCEL, "Remove directory?")
             if ui_result == 1
                 uimessage('removing directories')
-                clearDirectory(scene_dir)
-                prepareSceneDir(scene_dir)
+                clearDirectory(scene_dir) ## deletes old directory
+                #prepareSceneDir(scene_dir) ## creates new Radiance directory structure, w/ "octrees," "images," "logfiles," 
+                                           ## and "ambfiles" folders. Removed for su2ds. 
                 return true
             else
                 uimessage('export canceled')
                 return false
             end
         else
-            prepareSceneDir(scene_dir)
+            #prepareSceneDir(scene_dir)
         end
         return true
     end

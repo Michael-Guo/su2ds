@@ -4,14 +4,14 @@ class RadianceScene < ExportBase
 
     def initialize
         @model = Sketchup.active_model
-        initGlobals() 
-        initGlobalHashes()
-        initLog()
-        @radOpts = RadianceOptions.new()
-        
+        initGlobals() ## initiates a set of global variables
+        initGlobalHashes() ## initiates a set of global hashes
+        initLog() ## intitiates log file
+        @radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
+                                          ## removed this for su2ds
         $scene_name = "unnamed_scene"
         $export_dir = Dir.pwd()
-        setExportDirectory()
+        setExportDirectory() ## sets $scene_name and $export_dir variables
         
         #@copy_textures = true
         #@texturewriter = Sketchup.create_texture_writer
@@ -47,7 +47,7 @@ class RadianceScene < ExportBase
     end
     
     def initLog
-        super
+        super ## calls initLog in RadianceScene superclass, ExportBase 
         line1 = "###  su2ds.rb export ###" 
         line2 = "###  %s  ###" % Time.now.asctime
         $log = [line1,line2]
@@ -69,10 +69,10 @@ class RadianceScene < ExportBase
    
     def confirmExportDirectory
         ## show user dialog for export options
-        ud = UserDialog.new()
+        ud = UserDialog.new() 
         ud.addOption("export path", $export_dir)
         ud.addOption("scene name", $scene_name)
-        ud.addOption("show options", $SHOWRADOPTS) 
+        #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
         ud.addOption("all views", $EXPORTALLVIEWS) 
         ud.addOption("mode", $MODE, "by group|by layer|by color")
         ud.addOption("triangulate", $TRIANGULATE)
@@ -82,15 +82,15 @@ class RadianceScene < ExportBase
         #if $RAD != ''
         #    ud.addOption("run preview", $PREVIEW)
         #end
-        if ud.show('export options') == true
+        if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $export_dir = ud.results[0] 
-            $scene_name = ud.results[1] 
-            $SHOWRADOPTS = ud.results[2] 
-            $EXPORTALLVIEWS = ud.results[3] 
-            $MODE = ud.results[4]
-            $TRIANGULATE = ud.results[5]
+            $scene_name = ud.results[1]
+            #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
+            $EXPORTALLVIEWS = ud.results[2] ## note: all of these indices bumped down since $SHOWRADOPTS removed
+            $MODE = ud.results[3]
+            $TRIANGULATE = ud.results[4]
             if $REPLMARKS != '' and File.exists?($REPLMARKS)
-                $MAKEGLOBAL = ud.results[6]
+                $MAKEGLOBAL = ud.results[5]
             end
             #if $RAD != ''
             #    $PREVIEW = ud.result[7]
@@ -150,13 +150,20 @@ class RadianceScene < ExportBase
     end
     
     def export(selected_only=0)
-        scene_dir = "#{$export_dir}/#{$scene_name}"
-        if not confirmExportDirectory or not removeExisting(scene_dir)
-            return
+#        scene_dir = "#{$export_dir}/#{$scene_name}" ## these are set when RadianceScene object is initiated; note that up to this point, 
+#                                                    ## the only way for $scene_name to have been modified from its default value is for a 
+#                                                    ## Sketchup page name to have been read. I think this may be an error, because the
+#                                                    ## consequence is that the directory structure created in removeExisting doesn't
+#        if not confirmExportDirectory or not removeExisting(scene_dir) ## if confirmExportDirectory or removeExisting return false, do not 
+#                                                                       ## continue with export.
+
+        if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$scene_name}") # changed this to fix above problem
+            return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
-        if $SHOWRADOPTS == true
-            @radOpts.showDialog
-        end
+                   
+#        if $SHOWRADOPTS == true  ## this is irrelevant to a DAYSIM export; therefore, removed
+#            @radOpts.showDialog
+#        end
         
         ## check if global coord system is required
         if $MODE != 'by group'
