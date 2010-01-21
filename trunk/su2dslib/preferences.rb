@@ -102,7 +102,7 @@ class PreferencesDialog
         @triangulate = $TRIANGULATE
         @unit       = $UNIT
         @utc_offset = $UTC_OFFSET
-        @showradopts = $SHOWRADOPTS
+        #@showradopts = $SHOWRADOPTS  ## removed for su2ds
         @exportallviews = $EXPORTALLVIEWS
         @supportdir = $SUPPORTDIR
         @build_material_lib = $BUILD_MATERIAL_LIB
@@ -226,7 +226,7 @@ class PreferencesDialog
         $UTC_OFFSET = @utc_offset
         $UNIT       = @unit
         $SUPPORTDIR = @supportdir
-        $SHOWRADOPTS        = @showradopts 
+        #$SHOWRADOPTS        = @showradopts ## removed for su2ds
         $EXPORTALLVIEWS     = @exportallviews  
         $BUILD_MATERIAL_LIB = @build_material_lib
     end
@@ -245,7 +245,7 @@ class PreferencesDialog
             "$MODE                  = '#{$MODE}'",
             "$MAKEGLOBAL            = #{$MAKEGLOBAL}",
             "$TRIANGULATE           = #{$TRIANGULATE}",
-            "$SHOWRADOPTS           = #{$SHOWRADOPTS}",
+            #{}"$SHOWRADOPTS           = #{$SHOWRADOPTS}", ## removed for su2ds
             "$EXPORTALLVIEWS        = #{$EXPORTALLVIEWS}",
             "$BUILD_MATERIAL_LIB    = #{$BUILD_MATERIAL_LIB}",
             "$ZOFFSET               = nil",

@@ -29,14 +29,14 @@ class UserDialog
         end
     end
 
-    def show(title='options')
-        ui = UI.inputbox(@prompts, @values, @choices, title)
-        if not ui
-            return false
+    def show(title='options') # this method creates box, and puts inputs in @results array
+        ui = UI.inputbox(@prompts, @values, @choices, title) ## ui is an array of results returned by UI.inputbox
+        if not ui ## in Ruby, Boolean evaluation of non-Boolean data is as follows: only nil and false evaluate to false; everything else evaluates to true
+            return false # basically, if the user cancels, the results array will be nil, and show method will return false
         else
-            ui.each_index { |i|
+            ui.each_index { |i|  ## this bit basically converts instances of "yes" to true and instances of "no" to false
                 if @isbool[i] == true
-                    if ui[i] == 'yes'
+                    if ui[i] == 'yes' 
                         @results.push(true)
                     else
                         @results.push(false)
