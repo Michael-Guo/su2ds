@@ -73,12 +73,12 @@ class ExportBase
         end
     end
     
-    def isVisible(e)
-        if $inComponent[-1] == true and e.layer.name == 'Layer0'
+    def isVisible(e) ## checks if the entity passed to it is visible or not
+        if $inComponent[-1] == true and e.layer.name == 'Layer0' ## not sure exactly what this is about...
             return true
-        elsif e.hidden?
+        elsif e.hidden? ## hidden? method from Sketchup API; returns true if element is hidden
             return false
-        elsif not $visibleLayers.has_key?(e.layer)
+        elsif not $visibleLayers.has_key?(e.layer) ## checks $visibleLayers hash to ensure entity's layer is visible
             return false
         end
         return true
@@ -94,47 +94,47 @@ class ExportBase
         return s.gsub(/\W/, '')
     end
     
-    def exportByCL(entity_list, mat, globaltrans)
-        ## unused?
-        $materialContext.push(mat)
-        lines = []
-        entity_list.each { |e|
-            if not isVisible(e)
-                next
-            elsif e.class == Sketchup::Group
-                gtrans = globaltrans * e.transformation
-                lines += exportByCL(e.entities, e.material, gtrans)
-            elsif e.class == Sketchup::ComponentInstance
-                gtrans = globaltrans * e.transformation
-                $inComponent.push(true)
-                lines += exportByCL(e.definition.entities, e.material, gtrans)
-                $inComponent.pop()
-            elsif e.class == Sketchup::Face
-                $facecount += 1
-                rp = RadiancePolygon.new(e, $facecount)
-                if rp.material == nil or rp.material.texture == nil
-                    face = rp.getText(globaltrans)
-                else
-                    face = rp.getPolyMesh(globaltrans)
-                    #XXX$texturewriter.load(e,true)
-                end
-                lines.push([rp.material, rp.layer.name, face])
-            end
-        }
-        $materialContext.pop()
-        return lines
-    end
+    # def exportByCL(entity_list, mat, globaltrans)
+    #     ## unused?
+    #     $materialContext.push(mat)
+    #     lines = []
+    #     entity_list.each { |e|
+    #         if not isVisible(e)
+    #             next
+    #         elsif e.class == Sketchup::Group
+    #             gtrans = globaltrans * e.transformation
+    #             lines += exportByCL(e.entities, e.material, gtrans)
+    #         elsif e.class == Sketchup::ComponentInstance
+    #             gtrans = globaltrans * e.transformation
+    #             $inComponent.push(true)
+    #             lines += exportByCL(e.definition.entities, e.material, gtrans)
+    #             $inComponent.pop()
+    #         elsif e.class == Sketchup::Face
+    #             $facecount += 1
+    #             rp = RadiancePolygon.new(e, $facecount)
+    #             if rp.material == nil or rp.material.texture == nil
+    #                 face = rp.getText(globaltrans)
+    #             else
+    #                 face = rp.getPolyMesh(globaltrans)
+    #                 #XXX$texturewriter.load(e,true)
+    #             end
+    #             lines.push([rp.material, rp.layer.name, face])
+    #         end
+    #     }
+    #     $materialContext.pop()
+    #     return lines
+    # end
         
     def exportByGroup(entity_list, parenttrans, instance=false)
         ## split scene in individual files
         references = []
         faces = []
-        entity_list.each { |e|
-            if e.class == Sketchup::Group
-                if not isVisible(e)
+        entity_list.each { |e| ## iterates through list of entities passed from RadianceScene
+            if e.class == Sketchup::Group ## if entity is a group...
+                if not isVisible(e) ## continues to next entity if entity is hidden
                     next
                 end
-                rg = RadianceGroup.new(e)
+                rg = RadianceGroup.new(e) 
                 ref = rg.export(parenttrans)
                 references.push(ref)
             elsif e.class == Sketchup::ComponentInstance
@@ -234,7 +234,7 @@ class ExportBase
 
     def isMirror(trans)
         ##TODO: identify mirror axes
-        xa = point_to_vector(trans.xaxis)
+        xa = point_to_vector(trans.xaxis) ## point_to_vector: turns a Geom::Point3D into a Geom::Vector3D
         ya = point_to_vector(trans.yaxis)
         za = point_to_vector(trans.zaxis)
         xy = xa.cross(ya)

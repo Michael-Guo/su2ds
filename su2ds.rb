@@ -98,11 +98,13 @@ loadPreferences()
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 
 
-def startExport(selected_only=0)
+#def startExport(selected_only=0)
+def startExport ## modified for su2ds
     begin
         $MatLib = MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
         rs = RadianceScene.new()
-        rs.export(selected_only)
+        #rs.export(selected_only)
+        rs.export ## modified for su2ds
     rescue => e 
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
         UI.messagebox msg            
@@ -165,8 +167,9 @@ else
         if (not file_loaded?("su2ds.rb"))
             pmenu = UI.menu("Plugin")
             radmenu = pmenu.add_submenu("su2ds")
-            radmenu.add_item("export scene") { startExport(0) }
-            radmenu.add_item("export selection") { startExport(1) }
+            #radmenu.add_item("export scene") { startExport(0) } ## modified for su2ds
+            radmenu.add_item("export scene") { startExport }
+            #radmenu.add_item("export selection") { startExport(1) } ## removed for su2ds
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
             matmenu.add_item("resolve conflicts") { resolveConflicts }

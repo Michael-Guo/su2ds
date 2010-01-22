@@ -60,10 +60,11 @@ class RadianceGroup < ExportBase
     end
        
     def export(parenttrans)
-        entities = @entity.entities
-        name = getUniqueName(@entity.name)
-        resetglobal = false
-        if isMirror(@entity.transformation) and not $MAKEGLOBAL
+        entities = @entity.entities ## @entity should be a Sketchup group; this retrieves the entities from that group
+        name = getUniqueName(@entity.name) ## creates unique name for group in case of duplicates
+        resetglobal = false 
+        if isMirror(@entity.transformation) and not $MAKEGLOBAL  ## Sketchup::Group.transformation describes the transformation that maps
+                                                                 ## the model origin to the group's origin
             resetglobal = true
             $MAKEGLOBAL = true
             uimessage("group '#{name}' is mirrored; using global coords")
@@ -544,165 +545,165 @@ class RadiancePolygon < ExportBase
 end 
 
 
-class RadianceSky < ExportBase
-    
-    attr_reader :skytype
-    attr_writer :skytype 
-    
-    def initialize
-        @skytype = "-c"
-        @comments = ''
-    end
-    
-    def export
-        sinfo = Sketchup.active_model.shadow_info
-        
-        text = getGenSkyOptions(sinfo)
-        text += " #{@skytype} -g 0.2 -t 1.7"
-        text += " | xform -rz %.1f\n\n" % (-1*sinfo['NorthAngle']) 
-        text += "skyfunc glow skyglow\n0\n0\n4 1.000 1.000 1.000 0\n"
-        text += "skyglow source sky\n0\n0\n4 0 0 1 180\n\n"
-        text += "skyfunc glow groundglow\n0\n0\n4 1.000 1.000 1.000 0\n"
-        text += "groundglow source ground\n0\n0\n4 0 0 -1 180\n"
-
-        city = remove_spaces(sinfo['City'])
-        timestamp = sinfo['ShadowTime'].strftime("%m%d_%H%M")
-        filename = getFilename("skies/%s_%s.sky" % [city, timestamp])
-        filetext = @comments + "\n" + text
-        if not createFile(filename, filetext)
-            uimessage("Error: Could not create sky file '#{filename}'")
-            return ''
-        else
-            return "skies/%s_%s.sky" % [city, timestamp]
-        end
-    end
-    
-    def getGenSkyOptions(sinfo)
-        ## Time zone of ShadowTime is UTC. When strftime is used
-        ## local tz is applied which shifts the time string for gensky.
-        ## $UTC_OFFSET has to be defined to compensate this. Without
-        ## it sky can only by definded by '-ang alti azi' syntax.
-        if $UTC_OFFSET != nil
-            ## if offset is defined change time before strftime
-            skytime = sinfo['ShadowTime']
-            skytime -= $UTC_OFFSET*3600
-            if skytime.isdst == true
-                skytime -= 3600
-            end
-            lat  = sinfo['Latitude']
-            long = sinfo['Longitude']
-            mer  = "%.1f" % (sinfo['TZOffset']*-15.0)
-            text = "!gensky %s " % skytime.strftime("%m %d %H:%M")
-            text += " -a %.2f -o %.2f -m %1.f" % [lat, -1*long, mer]
-        else
-            ## use gensky with angles derieved from sun direction
-            text = "## set $UTC_OFFSET to allow gensky spec with daytime\n"
-            d = sinfo['SunDirection']
-            dXY = Geom::Vector3d.new(d.x, d.y, 0)
-            south = Geom::Vector3d.new(0, -1, 0)
-            alti = d.angle_between(dXY) * 180 / 3.141592654
-            if d.z < 0.0
-                alti *= -1
-            end
-            azi  = dXY.angle_between(south) * 180 / 3.141592654
-            if d.x > 0.0
-                azi *= -1
-            end
-            text += "!gensky -ang %.3f %.3f " % [alti, azi]
-        end
-        return text
-    end
-    
-    def getTimeZone(country, city, long)
-        ## unused
-        meridian = ''
-        ## location data file depends on platform
-        if $OS == 'MAC'
-            locationdata = 'locations.dat'
-        else
-            locationdata = 'SketchUp.tzl'
-        end
-        files = Sketchup.find_support_file(locationdata)
-        if files == nil
-            uimessage("support file '#{locationdata}' not found")
-            files = []
-        end
-        locations = []
-        files.each { |f|
-            begin
-                uimessage("using locations file '#{f}'")
-                fd = File.new(f, 'r')
-                locations = fd.readlines()
-                fd.close()
-                break
-            rescue
-                uimessage("could not use location file: '#{f}'")
-            end
-        }
-        re_country = Regexp.new(country)
-        re_city = Regexp.new(city)
-        locations.each { |l|
-            l = l.strip()
-            begin
-                a = l.split(",")
-                co = a[0].gsub('"','')
-                ci = a[1].gsub('"','')
-                if country == co 
-                    if city == ci
-                        uimessage("found location: '#{l}'")
-                        @comments += "## location data: %s '#{l}'\n"
-                        delta = a[-1].to_f
-                        meridian = "%.1f" % (delta*-15.0)
-                        break
-                    end
-                end
-            rescue
-                uimessage("Could not use location line '#{l}'")
-            end
-        }
-        if meridian == ''
-            ## not found in locations
-            msg = "meridian not found in location data -> calculating from long"
-            uimessage(msg)
-            @comments += "## %s\n" % msg
-            delta = long.to_f / 15.0
-            delta = delta.to_i
-            meridian = "%.1f" % (delta*-15.0)
-        end
-        return meridian
-    end
-
-    def test
-        sinfo = Sketchup.active_model.shadow_info
-        lat = sinfo['Latitude']
-        long = sinfo['Longitude']
-        s,m,hour,day,month,y,wday,yday,isdst,zone = sinfo['ShadowTime'].to_a
-        (6..12).each { |month|
-            (4..20).each { |hour|
-            t = Time.utc(y,month,21,hour,0,0)
-            sinfo['ShadowTime'] = t
-            angs = getGenSkyOptions(sinfo)
-            alt = angs.split()[-2]
-            azi = angs.split()[-1]
-            alt = alt.to_f
-            azi = azi.to_f
-            gensky = "/usr/local/bin/gensky %d 21 %02d:00 -o %.2f -m -105 -a %.2f | grep alti" % [month,hour,long,lat]
-            f = IO.popen(gensky)
-            lines = f.readlines()
-            f.close()
-            begin
-                parts = lines[0].split()
-                galti = parts[-2].to_f
-                gazim = parts[-1].to_f
-                dalt = galti - alt
-                dazi = gazim - azi
-                if dalt.abs > 1.0 or dazi.abs > 1.0
-                    print "==> %d 21 %02d:00  ->  dalt=%.2f  dazi=%.2f\n" % [month,hour,dalt, dazi]
-                end
-            rescue
-                print "Error\n"
-            end
-        }}
-    end
-        
-end    
+#class RadianceSky < ExportBase  ## removed for su2ds
+#    
+#    attr_reader :skytype
+#    attr_writer :skytype 
+#    
+#    def initialize
+#        @skytype = "-c"
+#        @comments = ''
+#    end
+#    
+#    def export
+#        sinfo = Sketchup.active_model.shadow_info
+#        
+#        text = getGenSkyOptions(sinfo)
+#        text += " #{@skytype} -g 0.2 -t 1.7"
+#        text += " | xform -rz %.1f\n\n" % (-1*sinfo['NorthAngle']) 
+#        text += "skyfunc glow skyglow\n0\n0\n4 1.000 1.000 1.000 0\n"
+#        text += "skyglow source sky\n0\n0\n4 0 0 1 180\n\n"
+#        text += "skyfunc glow groundglow\n0\n0\n4 1.000 1.000 1.000 0\n"
+#        text += "groundglow source ground\n0\n0\n4 0 0 -1 180\n"
+#
+#        city = remove_spaces(sinfo['City'])
+#        timestamp = sinfo['ShadowTime'].strftime("%m%d_%H%M")
+#        filename = getFilename("skies/%s_%s.sky" % [city, timestamp])
+#        filetext = @comments + "\n" + text
+#        if not createFile(filename, filetext)
+#            uimessage("Error: Could not create sky file '#{filename}'")
+#            return ''
+#        else
+#            return "skies/%s_%s.sky" % [city, timestamp]
+#        end
+#    end
+#    
+#    def getGenSkyOptions(sinfo)
+#        ## Time zone of ShadowTime is UTC. When strftime is used
+#        ## local tz is applied which shifts the time string for gensky.
+#        ## $UTC_OFFSET has to be defined to compensate this. Without
+#        ## it sky can only by definded by '-ang alti azi' syntax.
+#        if $UTC_OFFSET != nil
+#            ## if offset is defined change time before strftime
+#            skytime = sinfo['ShadowTime']
+#            skytime -= $UTC_OFFSET*3600
+#            if skytime.isdst == true
+#                skytime -= 3600
+#            end
+#            lat  = sinfo['Latitude']
+#            long = sinfo['Longitude']
+#            mer  = "%.1f" % (sinfo['TZOffset']*-15.0)
+#            text = "!gensky %s " % skytime.strftime("%m %d %H:%M")
+#            text += " -a %.2f -o %.2f -m %1.f" % [lat, -1*long, mer]
+#        else
+#            ## use gensky with angles derieved from sun direction
+#            text = "## set $UTC_OFFSET to allow gensky spec with daytime\n"
+#            d = sinfo['SunDirection']
+#            dXY = Geom::Vector3d.new(d.x, d.y, 0)
+#            south = Geom::Vector3d.new(0, -1, 0)
+#            alti = d.angle_between(dXY) * 180 / 3.141592654
+#            if d.z < 0.0
+#                alti *= -1
+#            end
+#            azi  = dXY.angle_between(south) * 180 / 3.141592654
+#            if d.x > 0.0
+#                azi *= -1
+#            end
+#            text += "!gensky -ang %.3f %.3f " % [alti, azi]
+#        end
+#        return text
+#    end
+#    
+#    def getTimeZone(country, city, long)
+#        ## unused
+#        meridian = ''
+#        ## location data file depends on platform
+#        if $OS == 'MAC'
+#            locationdata = 'locations.dat'
+#        else
+#            locationdata = 'SketchUp.tzl'
+#        end
+#        files = Sketchup.find_support_file(locationdata)
+#        if files == nil
+#            uimessage("support file '#{locationdata}' not found")
+#            files = []
+#        end
+#        locations = []
+#        files.each { |f|
+#            begin
+#                uimessage("using locations file '#{f}'")
+#                fd = File.new(f, 'r')
+#                locations = fd.readlines()
+#                fd.close()
+#                break
+#            rescue
+#                uimessage("could not use location file: '#{f}'")
+#            end
+#        }
+#        re_country = Regexp.new(country)
+#        re_city = Regexp.new(city)
+#        locations.each { |l|
+#            l = l.strip()
+#            begin
+#                a = l.split(",")
+#                co = a[0].gsub('"','')
+#                ci = a[1].gsub('"','')
+#                if country == co 
+#                    if city == ci
+#                        uimessage("found location: '#{l}'")
+#                        @comments += "## location data: %s '#{l}'\n"
+#                        delta = a[-1].to_f
+#                        meridian = "%.1f" % (delta*-15.0)
+#                        break
+#                    end
+#                end
+#            rescue
+#                uimessage("Could not use location line '#{l}'")
+#            end
+#        }
+#        if meridian == ''
+#            ## not found in locations
+#            msg = "meridian not found in location data -> calculating from long"
+#            uimessage(msg)
+#            @comments += "## %s\n" % msg
+#            delta = long.to_f / 15.0
+#            delta = delta.to_i
+#            meridian = "%.1f" % (delta*-15.0)
+#        end
+#        return meridian
+#    end
+#
+#    def test
+#        sinfo = Sketchup.active_model.shadow_info
+#        lat = sinfo['Latitude']
+#        long = sinfo['Longitude']
+#        s,m,hour,day,month,y,wday,yday,isdst,zone = sinfo['ShadowTime'].to_a
+#        (6..12).each { |month|
+#            (4..20).each { |hour|
+#             t = Time.utc(y,month,21,hour,0,0)
+#             sinfo['ShadowTime'] = t
+#             angs = getGenSkyOptions(sinfo)
+#             alt = angs.split()[-2]
+#             azi = angs.split()[-1]
+#             alt = alt.to_f
+#             azi = azi.to_f
+#             gensky = "/usr/local/bin/gensky %d 21 %02d:00 -o %.2f -m -105 -a %.2f | grep alti" % [month,hour,long,lat]
+#             f = IO.popen(gensky)
+#             lines = f.readlines()
+#             f.close()
+#             begin
+#                 parts = lines[0].split()
+#                 galti = parts[-2].to_f
+#                 gazim = parts[-1].to_f
+#                 dalt = galti - alt
+#                 dazi = gazim - azi
+#                 if dalt.abs > 1.0 or dazi.abs > 1.0
+#                     print "==> %d 21 %02d:00  ->  dalt=%.2f  dazi=%.2f\n" % [month,hour,dalt, dazi]
+#                 end
+#             rescue
+#                 print "Error\n"
+#             end
+#         }}
+#     end
+#         
+# end    
