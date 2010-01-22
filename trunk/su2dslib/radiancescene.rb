@@ -7,7 +7,7 @@ class RadianceScene < ExportBase
         initGlobals() ## initiates a set of global variables
         initGlobalHashes() ## initiates a set of global hashes
         initLog() ## intitiates log file
-        @radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
+        #@radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
                                           ## removed this for su2ds
         $scene_name = "unnamed_scene"
         $export_dir = Dir.pwd()
@@ -26,7 +26,7 @@ class RadianceScene < ExportBase
         $components = []
         $componentNames = {}
         $uniqueFileNames = {}
-        $skyfile = ''
+        #$skyfile = '' ## removed for su2ds
         $log = []
         $facecount = 0
         $filecount = 0
@@ -38,10 +38,10 @@ class RadianceScene < ExportBase
         $byColor = {}
         $byLayer = {}
         $visibleLayers = {}
-        @model.layers.each { |l|
-            $byLayer[remove_spaces(l.name)] = []
+        @model.layers.each { |l|  ## @model set to Sketchup.active_model in initialize method
+            $byLayer[remove_spaces(l.name)] = [] ## populates $byLayer hash with pairs consisting of each layer's name and an empty array
             if l.visible?
-                $visibleLayers[l] = 1
+                $visibleLayers[l] = 1 ## puts each visible layer in $visibleLayers hash with a corresponding "1"
             end
         }
     end
@@ -138,9 +138,9 @@ class RadianceScene < ExportBase
         ref_text += references.join("\n")
         ## add materials and sky at top of file
         ref_text = "!xform ./materials.rad\n" + ref_text
-        if $skyfile != ''
-            ref_text = "!xform #{$skyfile} \n" + ref_text
-        end
+        #if $skyfile != ''                                      ## removed
+        #    ref_text = "!xform #{$skyfile} \n" + ref_text      ## for 
+        #end                                                    ## su2ds
         ref_filename = getFilename("#{$scene_name}.rad")
         if not createFile(ref_filename, ref_text)
             msg = "\n## ERROR: error creating file '%s'\n" % filename
@@ -149,7 +149,8 @@ class RadianceScene < ExportBase
         end
     end
     
-    def export(selected_only=0)
+    #def export(selected_only=0)
+    def export ## selection option removed for su2ds
 #        scene_dir = "#{$export_dir}/#{$scene_name}" ## these are set when RadianceScene object is initiated; note that up to this point, 
 #                                                    ## the only way for $scene_name to have been modified from its default value is for a 
 #                                                    ## Sketchup page name to have been read. I think this may be an error, because the
@@ -178,24 +179,25 @@ class RadianceScene < ExportBase
         end
         
         ## write sky first for <scene>.rad file
-        sky = RadianceSky.new()
-        sky.skytype = @radOpts.skytype
-        $skyfile = sky.export()
+#        sky = RadianceSky.new()            ## removed
+#        sky.skytype = @radOpts.skytype     ## for
+#        $skyfile = sky.export()            ## su2ds
         
         ## export geometry
-        if selected_only != 0
-            entities = []
-            Sketchup.active_model.selection.each{|e| entities = entities + [e]}
-        else
-            entities = Sketchup.active_model.entities
-        end
-        $globaltrans = Geom::Transformation.new
+        # if selected_only != 0  ## this bit removed for su2ds; redundant once layer-selection option added
+        #     entities = []
+        #     Sketchup.active_model.selection.each{|e| entities = entities + [e]}
+        # else
+        #     entities = Sketchup.active_model.entities
+        # end
+        entities = Sketchup.active_model.entities
+        $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($scene_name) 
         sceneref = exportByGroup(entities, Geom::Transformation.new)
         saveFilesByCL()
         $nameContext.pop()
         $materialContext.export()
-        createRifFile()
+#        createRifFile() removed for su2ds
         runPreview()
         writeLogFile()
     end
@@ -253,58 +255,58 @@ class RadianceScene < ExportBase
         end
     end
    
-    def getRifObjects
-        text = ''
-        if $skyfile != ''
-            text += "objects=\t#{$skyfile}\n"
-        end
-        i = 0
-        j = 0
-        line = ""
-        Dir.foreach(getFilename("objects")) { |f|
-            if f[0,1] == '.'
-                next
-            elsif f[-4,4] == '.rad'
-                line += "\tobjects/#{f}"
-                i += 1
-                j += 1
-                if i == 3
-                    text += "objects=#{line}\n"
-                    i = 0
-                    line = ""
-                end
-                if j == 63
-                    uimessage("too many objects for rif file")
-                    break
-                end
-            end
-        }
-        if line != ""
-            text += "objects=#{line}\n"
-        end
-        return text
-    end
+    # def getRifObjects   ## removed for su2ds
+    #     text = ''
+    #     if $skyfile != ''
+    #         text += "objects=\t#{$skyfile}\n"
+    #     end
+    #     i = 0
+    #     j = 0
+    #     line = ""
+    #     Dir.foreach(getFilename("objects")) { |f|
+    #         if f[0,1] == '.'
+    #             next
+    #         elsif f[-4,4] == '.rad'
+    #             line += "\tobjects/#{f}"
+    #             i += 1
+    #             j += 1
+    #             if i == 3
+    #                 text += "objects=#{line}\n"
+    #                 i = 0
+    #                 line = ""
+    #             end
+    #             if j == 63
+    #                 uimessage("too many objects for rif file")
+    #                 break
+    #             end
+    #         end
+    #     }
+    #     if line != ""
+    #         text += "objects=#{line}\n"
+    #     end
+    #     return text
+    # end
     
-    def createRifFile
-        text =  "# scene input file for rad\n"
-        text += @radOpts.getRadOptions
-        text += "\n"
-        project = remove_spaces(File.basename($export_dir))
-        text += "PICTURE=      images/#{project}\n" 
-        text += "OCTREE=       octrees/#{$scene_name}.oct\n"
-        text += "AMBFILE=      ambfiles/#{$scene_name}.amb\n"
-        text += "REPORT=       3 logfiles/#{$scene_name}.log\n"
-        text += "scene=        #{$scene_name}.rad\n"
-        text += "materials=    materials.rad\n\n"
-        text += "%s\n\n" % exportViews()
-        text += getRifObjects
-        text += "\n"
-        
-        filename = getFilename("%s.rif" % $scene_name)
-        if not createFile(filename, text)
-            uimessage("Error: Could not create rif file '#{filename}'")
-        end
-    end
+#    def createRifFile ## removed for su2ds
+#        text =  "# scene input file for rad\n"
+#        text += @radOpts.getRadOptions
+#        text += "\n"
+#        project = remove_spaces(File.basename($export_dir))
+#        text += "PICTURE=      images/#{project}\n" 
+#        text += "OCTREE=       octrees/#{$scene_name}.oct\n"
+#        text += "AMBFILE=      ambfiles/#{$scene_name}.amb\n"
+#        text += "REPORT=       3 logfiles/#{$scene_name}.log\n"
+#        text += "scene=        #{$scene_name}.rad\n"
+#        text += "materials=    materials.rad\n\n"
+#        text += "%s\n\n" % exportViews()
+#        text += getRifObjects
+#        text += "\n"
+#        
+#        filename = getFilename("%s.rif" % $scene_name)
+#        if not createFile(filename, text)
+#            uimessage("Error: Could not create rif file '#{filename}'")
+#        end
+#    end
         
     def exportViews
         views = []
