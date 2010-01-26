@@ -73,12 +73,12 @@ class RadianceScene < ExportBase
         ud.addOption("export path", $export_dir)
         ud.addOption("scene name", $scene_name)
         #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
-        ud.addOption("all views", $EXPORTALLVIEWS) 
+        #ud.addOption("all views", $EXPORTALLVIEWS) ## removed for su2ds
         ud.addOption("mode", $MODE, "by group|by layer|by color")
         ud.addOption("triangulate", $TRIANGULATE)
-        if $REPLMARKS != '' and File.exists?($REPLMARKS)
-            ud.addOption("global coords", $MAKEGLOBAL) 
-        end
+        # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
+        #     ud.addOption("global coords", $MAKEGLOBAL) 
+        # end
         #if $RAD != ''
         #    ud.addOption("run preview", $PREVIEW)
         #end
@@ -86,12 +86,14 @@ class RadianceScene < ExportBase
             $export_dir = ud.results[0] 
             $scene_name = ud.results[1]
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
-            $EXPORTALLVIEWS = ud.results[2] ## note: all of these indices bumped down since $SHOWRADOPTS removed
-            $MODE = ud.results[3]
-            $TRIANGULATE = ud.results[4]
-            if $REPLMARKS != '' and File.exists?($REPLMARKS)
-                $MAKEGLOBAL = ud.results[5]
-            end
+            #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
+            #$MODE = ud.results[4]
+            $MODE = ud.results[2]
+            #$TRIANGULATE = ud.results[5]
+            $TRIANGULATE = ud.results[3]
+            # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
+            #     $MAKEGLOBAL = ud.results[5]
+            # end
             #if $RAD != ''
             #    $PREVIEW = ud.result[7]
             #end
@@ -167,16 +169,16 @@ class RadianceScene < ExportBase
 #        end
         
         ## check if global coord system is required
-        if $MODE != 'by group'
-            uimessage("export mode '#{$MODE}' requires global coordinates")
-            $MAKEGLOBAL = true
-        elsif $REPLMARKS == '' or not File.exists?($REPLMARKS)
-            if $MAKEGLOBAL == false
-                uimessage("WARNING: 'replmarks' not found.")
-                uimessage("=> global coordinates will be used in files")
-                $MAKEGLOBAL = true
-            end
-        end
+        # if $MODE != 'by group'                                                ## removed for su2ds; all exports will be in global coords
+        #     uimessage("export mode '#{$MODE}' requires global coordinates")
+        #     $MAKEGLOBAL = true
+        # elsif $REPLMARKS == '' or not File.exists?($REPLMARKS)
+        #     if $MAKEGLOBAL == false
+        #         uimessage("WARNING: 'replmarks' not found.")
+        #         uimessage("=> global coordinates will be used in files")
+        #         $MAKEGLOBAL = true
+        #     end
+        # end
         
         ## write sky first for <scene>.rad file
 #        sky = RadianceSky.new()            ## removed
@@ -308,63 +310,63 @@ class RadianceScene < ExportBase
 #        end
 #    end
         
-    def exportViews
-        views = []
-        views.push(createViewFile(@model.active_view.camera, $scene_name))
-        if $EXPORTALLVIEWS == true
-            pages = @model.pages
-            pages.each { |page|
-                if page == @model.pages.selected_page
-                    next
-                elsif page.use_camera? == true
-                    name = remove_spaces(page.name)
-                    views.push(createViewFile(page.camera, name))
-                end
-            }
-        end
-        return views.join("\n")
-    end
+    # def exportViews           ## removed for su2ds, don't need view files in DAYSIM
+    #     views = []
+    #     views.push(createViewFile(@model.active_view.camera, $scene_name))
+    #     if $EXPORTALLVIEWS == true
+    #         pages = @model.pages
+    #         pages.each { |page|
+    #             if page == @model.pages.selected_page
+    #                 next
+    #             elsif page.use_camera? == true
+    #                 name = remove_spaces(page.name)
+    #                 views.push(createViewFile(page.camera, name))
+    #             end
+    #         }
+    #     end
+    #     return views.join("\n")
+    # end
 
-    def createViewFile(c, viewname)
-        text =  "-vp %.3f %.3f %.3f  " % [c.eye.x*$UNIT,c.eye.y*$UNIT,c.eye.z*$UNIT]
-        text += "-vd %.3f %.3f %.3f  " % [c.zaxis.x,c.zaxis.y,c.zaxis.z]
-        text += "-vu %.3f %.3f %.3f  " % [c.up.x,c.up.y,c.up.z]
-        imgW = @model.active_view.vpwidth.to_f
-        imgH = @model.active_view.vpheight.to_f
-        aspect = imgW/imgH
-        if c.perspective?
-            type = '-vtv'
-            if aspect > 1.0
-                vv = c.fov
-                vh = getFoVAngle(vv, imgH, imgW)
-            else
-                vh = c.fov
-                vv = getFoVAngle(vh, imgW, imgH)
-            end
-        else
-            type = '-vtl'
-            vv = c.height*$UNIT
-            vh = vv*aspect
-        end
-        text += "-vv %.3f -vh %.3f" % [vv, vh]
-        text = "rvu #{type} " + text
-        
-        filename = getFilename("views/%s.vf" % viewname)
-        if not createFile(filename, text)
-            msg = "## Error: Could not create view file '#{filename}'"
-            uimessage(msg)
-            return msg
-        else
-            return "view=   #{viewname} -vf views/#{viewname}.vf" 
-        end
-    end
+    # def createViewFile(c, viewname)       ## removed for su2ds, don't need views in DAYSIM
+    #     text =  "-vp %.3f %.3f %.3f  " % [c.eye.x*$UNIT,c.eye.y*$UNIT,c.eye.z*$UNIT]
+    #     text += "-vd %.3f %.3f %.3f  " % [c.zaxis.x,c.zaxis.y,c.zaxis.z]
+    #     text += "-vu %.3f %.3f %.3f  " % [c.up.x,c.up.y,c.up.z]
+    #     imgW = @model.active_view.vpwidth.to_f
+    #     imgH = @model.active_view.vpheight.to_f
+    #     aspect = imgW/imgH
+    #     if c.perspective?
+    #         type = '-vtv'
+    #         if aspect > 1.0
+    #             vv = c.fov
+    #             vh = getFoVAngle(vv, imgH, imgW)
+    #         else
+    #             vh = c.fov
+    #             vv = getFoVAngle(vh, imgW, imgH)
+    #         end
+    #     else
+    #         type = '-vtl'
+    #         vv = c.height*$UNIT
+    #         vh = vv*aspect
+    #     end
+    #     text += "-vv %.3f -vh %.3f" % [vv, vh]
+    #     text = "rvu #{type} " + text
+    #     
+    #     filename = getFilename("views/%s.vf" % viewname)
+    #     if not createFile(filename, text)
+    #         msg = "## Error: Could not create view file '#{filename}'"
+    #         uimessage(msg)
+    #         return msg
+    #     else
+    #         return "view=   #{viewname} -vf views/#{viewname}.vf" 
+    #     end
+    # end
     
-    def getFoVAngle(ang1, side1, side2)
-        ang1_rad = ang1*Math::PI/180
-        dist = side1 / (2.0*Math::tan(ang1_rad/2.0))
-        ang2_rad = 2 * Math::atan2(side2/(2*dist), 1)
-        ang2 = (ang2_rad*180.0)/Math::PI
-        return ang2
-    end
+    # def getFoVAngle(ang1, side1, side2)  ## removed for su2ds; only referenced in pieces of code already removed
+    #     ang1_rad = ang1*Math::PI/180
+    #     dist = side1 / (2.0*Math::tan(ang1_rad/2.0))
+    #     ang2_rad = 2 * Math::atan2(side2/(2*dist), 1)
+    #     ang2 = (ang2_rad*180.0)/Math::PI
+    #     return ang2
+    # end
 end
 
