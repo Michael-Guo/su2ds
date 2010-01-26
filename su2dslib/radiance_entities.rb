@@ -62,19 +62,18 @@ class RadianceGroup < ExportBase
     def export(parenttrans)
         entities = @entity.entities ## @entity should be a Sketchup group; this retrieves the entities from that group
         name = getUniqueName(@entity.name) ## creates unique name for group in case of duplicates
-        resetglobal = false 
-        if isMirror(@entity.transformation) and not $MAKEGLOBAL  ## Sketchup::Group.transformation describes the transformation that maps
-                                                                 ## the model origin to the group's origin
-            resetglobal = true
-            $MAKEGLOBAL = true
-            uimessage("group '#{name}' is mirrored; using global coords")
-        end
-        if $MAKEGLOBAL == true
-            parenttrans *= @entity.transformation
-        else
-            parenttrans = @entity.transformation
-        end
-        
+        # resetglobal = false 
+        # if isMirror(@entity.transformation) and not $MAKEGLOBAL  ## removed for su2ds; modified code as if $MAKEGLOBAL is
+        #     resetglobal = true                                   ## always true
+        #     $MAKEGLOBAL = true
+        #     uimessage("group '#{name}' is mirrored; using global coords")     
+        # end
+        # if $MAKEGLOBAL == true                                    ## removed for su2ds; modified code as if $MAKEGLOBAL is
+        #             parenttrans *= @entity.transformation         ## always true
+        #         else
+        #             parenttrans = @entity.transformation
+        #         end
+        parenttrans *= @entity.transformation
         $nameContext.push(name)
         $materialContext.push(getMaterial(@entity))
         oldglobal = $globaltrans
@@ -83,9 +82,9 @@ class RadianceGroup < ExportBase
         $globaltrans = oldglobal
         $materialContext.pop()
         $nameContext.pop()
-        if resetglobal == true
-            $MAKEGLOBAL = false
-        end
+        # if resetglobal == true    ## removed for su2ds; modified code as if $MAKEGLOBAL always true
+        #     $MAKEGLOBAL = false
+        # end
         return ref
     end
     
@@ -103,9 +102,9 @@ class RadianceComponent < ExportBase
         @iesdata = ''
         @lampMF = 0.8
         @lampType = 'default'
-        if $REPLMARKS != ''
-            searchReplFile()
-        end
+        # if $REPLMARKS != ''   ## removed for su2ds
+        #     searchReplFile()
+        # end
     end
             
     def copyDataFile(transformation)
@@ -193,23 +192,23 @@ class RadianceComponent < ExportBase
         end
     end
     
-    def searchReplFile
-        cpath = @entity.definition.path
-        if cpath == nil or cpath == false
-            return
-        end
-        if FileTest.exists?(cpath.sub('.skp', '.ies'))
-            @iesdata = cpath.sub('.skp', '.ies')
-            uimessage("ies data file '#{@iesdata}' found", 1)
-        end
-        if FileTest.exists?(cpath.sub('.skp', '.oct'))
-            @replacement = cpath.sub('.skp', '.oct')
-            uimessage("replacement file '#{@replacement}' found", 1)
-        elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
-            @replacement = cpath.sub('.skp', '.rad')
-            uimessage("replacement file '#{@replacement}' found", 1)
-        end
-    end
+    # def searchReplFile                            ## removed for su2ds; all exports in global coords
+    #     cpath = @entity.definition.path
+    #     if cpath == nil or cpath == false
+    #         return
+    #     end
+    #     if FileTest.exists?(cpath.sub('.skp', '.ies'))
+    #         @iesdata = cpath.sub('.skp', '.ies')
+    #         uimessage("ies data file '#{@iesdata}' found", 1)
+    #     end
+    #     if FileTest.exists?(cpath.sub('.skp', '.oct'))
+    #         @replacement = cpath.sub('.skp', '.oct')
+    #         uimessage("replacement file '#{@replacement}' found", 1)
+    #     elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
+    #         @replacement = cpath.sub('.skp', '.rad')
+    #         uimessage("replacement file '#{@replacement}' found", 1)
+    #     end
+    # end
     
     def export(parenttrans)
         entities = @entity.definition.entities
@@ -224,37 +223,43 @@ class RadianceComponent < ExportBase
         
         ## force export to global coords if transformation
         ## can't be reproduced with xform
-        resetglobal = false
-        if isMirror(@entity.transformation)
-            if $MAKEGLOBAL == false
-                $MAKEGLOBAL = true
-                resetglobal = true
-                uimessage("instance '#{iname}' is mirrored; using global coords")
-            end
-        end
+        # resetglobal = false                       ## removed for su2ds; all exports will be in global coords
+        # if isMirror(@entity.transformation)
+        #     if $MAKEGLOBAL == false
+        #         $MAKEGLOBAL = true
+        #         resetglobal = true
+        #         uimessage("instance '#{iname}' is mirrored; using global coords")
+        #     end
+        # end
         
         skip_export = false
-        if $MAKEGLOBAL == false
-            filename = getFilename("objects/#{defname}.rad")
-            if $createdFiles[filename] == 1
-                skip_export = true
-                uimessage("file 'objects/#{defname}.rad' exists -> skipping export")
-                uimessage("creating new ref for instance '#{iname}'")
-            end
-            $nameContext.push(defname)  ## use definition name for file
-        else
-            filename = getFilename("objects/#{iname}.rad")
-            $nameContext.push(iname)    ## use instance name for file
-        end
+        # if $MAKEGLOBAL == false                                   ## modified for su2ds; all exports will be in
+        #     filename = getFilename("objects/#{defname}.rad")      ## global coords
+        #     if $createdFiles[filename] == 1
+        #         skip_export = true
+        #         uimessage("file 'objects/#{defname}.rad' exists -> skipping export")
+        #         uimessage("creating new ref for instance '#{iname}'")
+        #     end
+        #     $nameContext.push(defname)  ## use definition name for file
+        # else
+        #     filename = getFilename("objects/#{iname}.rad")
+        #     $nameContext.push(iname)    ## use instance name for file
+        # end
+        filename = getFilename("objects/#{iname}.rad")
+        $nameContext.push(iname) ## use instance name for file
         
-        if $MAKEGLOBAL == true and not resetglobal == true
-            showTransformation(parenttrans)
-            showTransformation(@entity.transformation)
-            parenttrans *= @entity.transformation
-            showTransformation(parenttrans)
-        else
-            parenttrans = @entity.transformation
-        end
+        # if $MAKEGLOBAL == true and not resetglobal == true    ## modified for su2ds; all exports will be in global coords
+        #     showTransformation(parenttrans)
+        #     showTransformation(@entity.transformation)
+        #     parenttrans *= @entity.transformation
+        #     showTransformation(parenttrans)
+        # else
+        #     parenttrans = @entity.transformation
+        # end
+        showTransformation(parenttrans)
+        showTransformation(@entity.transformation)
+        parenttrans *= @entity.transformation
+        showTransformation(parenttrans)
         
         if @iesdata != ''
             ## luminaire from IES data
@@ -275,9 +280,9 @@ class RadianceComponent < ExportBase
         
         $materialContext.pop()
         $nameContext.pop()
-        if resetglobal == true
-            $MAKEGLOBAL = false
-        end
+        # if resetglobal == true        ## removed for su2ds; all exports will be in global coords
+        #     $MAKEGLOBAL = false
+        # end
         if @replacement != '' or @iesdata != ''
             ## no alias for replacement files
             ## add to scene level components list

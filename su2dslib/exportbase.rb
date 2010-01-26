@@ -125,17 +125,20 @@ class ExportBase
     #     return lines
     # end
         
-    def exportByGroup(entity_list, parenttrans, instance=false)
-        ## split scene in individual files
+    def exportByGroup(entity_list, parenttrans, instance=false)  ## basically, this will execute, at the lowest level, once for every
+        ## split scene in individual files                       ## group of low-level entities (ie, faces and edges), whether or not
+                                                                 ## these entities are in a Sketchup::Group, Sketchup::Component, or
+                                                                 ## just "floating" in the model
         references = []
         faces = []
-        entity_list.each { |e| ## iterates through list of entities passed from RadianceScene
+        entity_list.each { |e|  ## this basically drills down into the group/component hierarchy and recursively adds faces to the faces
+                                ## array
             if e.class == Sketchup::Group ## if entity is a group...
                 if not isVisible(e) ## continues to next entity if entity is hidden
                     next
                 end
                 rg = RadianceGroup.new(e) 
-                ref = rg.export(parenttrans)
+                ref = rg.export(parenttrans) 
                 references.push(ref)
             elsif e.class == Sketchup::ComponentInstance
                 if not isVisible(e)
@@ -159,6 +162,12 @@ class ExportBase
                 uimessage("WARNING: Can't export entity of type '%s'!\n" % e.class)
             end
         }
+        # puts "HOW MANY TIMES DOES THIS HAPPEN???"   ########################################
+        # puts "THIS MANY ENTITIES: #{entity_list.length.to_s}" ##############################
+        # puts "ENTITY TYPES:" ###############################################################
+        # entity_list.each { |e| #############################################################
+        #     puts "   #{e.class}\n" #########################################################
+        # } ##################################################################################
         faces_text = ''
         numpoints = []
         faces.each_index { |i|
@@ -166,10 +175,12 @@ class ExportBase
             rp = RadiancePolygon.new(f,i)
             if rp.isNumeric
                 numpoints += rp.getNumericPoints()
-            elsif $MAKEGLOBAL
-                faces_text += rp.getText(parenttrans)
+            # elsif $MAKEGLOBAL                             ## removed for su2ds
+            #     faces_text += rp.getText(parenttrans)
+            # else
+            #     faces_text += rp.getText()
             else
-                faces_text += rp.getText()
+                faces_text += rp.getText(parenttrans)
             end
         }
         
@@ -242,14 +253,18 @@ class ExportBase
         yz = ya.cross(za)
         if xy.dot(za) < 0
             return true
+            puts "mirror!" ###########################
         end
         if xz.dot(ya) > 0
             return true
+            puts "mirror!" ###########################
         end
         if yz.dot(xa) < 0
             return true
+            puts "mirror!" ###########################
         end
         return false
+        puts "no mirror!" ###########################
     end
     
     def createDirectory(path)
@@ -371,53 +386,54 @@ class ExportBase
         filename.sub!(path, '')
         suffix = filename[filename.length-4,4].downcase()
         objname = $nameContext[-1]
-        if $MAKEGLOBAL
-            xform = "!xform -n #{objname} #{filename}"
-        else
-            #TODO: mirror 
-            mirror = ""
-            
-            ## scale is calculated by replmarks
-            ## we just check for extrem values
-            a = trans.to_a
-            scale = Geom::Vector3d.new(a[0..2])
-            if scale.length > 10000 or scale.length < 0.0001
-                uimessage("Warning unusual scale (%.3f) for object '%s'" % [scale.length, objname]) 
-            end
-            
-            ## transformation
-            trans = trans * $SCALETRANS
-            a = trans.to_a
-            o = a[12..14]
-            vx = [o[0]+a[0], o[1]+a[1], o[2]+a[2]]
-            vy = [o[0]+a[4]*0.5, o[1]+a[5]*0.5, o[2]+a[6]*0.5]
-            marker = "replaceme polygon #{objname}\n0\n0\n9\n"
-            marker += "%.6f %.6f %.6f\n" % o
-            marker += "%.6f %.6f %.6f\n" % vx 
-            marker += "%.6f %.6f %.6f\n" % vy
-            
-            if suffix == '.oct'
-                cmd = "echo '#{marker}' | replmarks -s 1.0 -i #{filename} replaceme"
-            elsif suffix == '.msh'
-                cmd = "echo '#{marker}' | replmarks -s 1.0 -I #{filename} replaceme"
-            else
-                cmd = "echo '#{marker}' | replmarks -s 1.0 -x #{filename} replaceme"
-            end
-            f = IO.popen(cmd)
-            lines = f.readlines
-            f.close()
-            begin
-                xform = lines[2].strip()
-                parts = xform.split()
-                p1 = parts[0..2]
-                p2 = parts[3..30]
-                xform = p1.join(" ") + " #{mirror} " + p2.join(" ")
-            rescue
-                msg = "ERROR: could not generate '!xform' command for file '#{filename}'"
-                uimessage("%s\n" % msg)
-                xform = "## %s" % msg
-            end
-        end
+        xform = "!xform -n #{objname} #{filename}"          ## added for su2ds; alternative assuming $MAKEGLOBAL = true 
+        # if $MAKEGLOBAL                                    ## removed for su2ds
+        #     xform = "!xform -n #{objname} #{filename}"
+        # else
+        #     #TODO: mirror 
+        #     mirror = ""
+        #     
+        #     ## scale is calculated by replmarks
+        #     ## we just check for extrem values
+        #     a = trans.to_a
+        #     scale = Geom::Vector3d.new(a[0..2])
+        #     if scale.length > 10000 or scale.length < 0.0001
+        #         uimessage("Warning unusual scale (%.3f) for object '%s'" % [scale.length, objname]) 
+        #     end
+        #     
+        #     ## transformation
+        #     trans = trans * $SCALETRANS
+        #     a = trans.to_a
+        #     o = a[12..14]
+        #     vx = [o[0]+a[0], o[1]+a[1], o[2]+a[2]]
+        #     vy = [o[0]+a[4]*0.5, o[1]+a[5]*0.5, o[2]+a[6]*0.5]
+        #     marker = "replaceme polygon #{objname}\n0\n0\n9\n"
+        #     marker += "%.6f %.6f %.6f\n" % o
+        #     marker += "%.6f %.6f %.6f\n" % vx 
+        #     marker += "%.6f %.6f %.6f\n" % vy
+        #     
+        #     if suffix == '.oct'
+        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -i #{filename} replaceme"
+        #     elsif suffix == '.msh'
+        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -I #{filename} replaceme"
+        #     else
+        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -x #{filename} replaceme"
+        #     end
+        #     f = IO.popen(cmd)
+        #     lines = f.readlines
+        #     f.close()
+        #     begin
+        #         xform = lines[2].strip()
+        #         parts = xform.split()
+        #         p1 = parts[0..2]
+        #         p2 = parts[3..30]
+        #         xform = p1.join(" ") + " #{mirror} " + p2.join(" ")
+        #     rescue
+        #         msg = "ERROR: could not generate '!xform' command for file '#{filename}'"
+        #         uimessage("%s\n" % msg)
+        #         xform = "## %s" % msg
+        #     end
+        # end
         return xform
     end 
     
