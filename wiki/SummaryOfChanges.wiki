@@ -1,0 +1,6 @@
+#summary this is an outline of the major changes I've made from su2rad, and the reasons for them
+
+=== Summary of changes ===
+
+  * *removed unnecessary functionality:* there was a lot of stuff in su2rad that would be very useful for Radiance exports, but would serve virtually no purpose for Daysim exports. Prime example: the global coordinate/replmarks functionality, which provided the capability to export geometry in easily xform-able groups. This would be really handy in Radiance, but basically useless in Daysim, since the geometry will always be machine-read. So, I removed this and a lot of stuff like it, with the intent of making the code easier to read, and the program easier to use.
+  * *removed export mode dialog from export options menu:* I figured it's possible that maintaining the option to export by group, layer, or colour could conceivably be useful, but it should be made an "advanced" option to avoid confusing the vast majority of users who will never touch it (and thus relegated solely to "preferences" menu). I figured exporting by layer is the most intuitive option, so I made that default.
