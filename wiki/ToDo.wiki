@@ -4,7 +4,6 @@
 
 Things that need to be dealt with:
 
-  # need to remove option mode dialogue from "export options," and make default mode "by layer"
   # need to figure out how $nameContext works and what exactly it does
   # need to figure out parenttrans and $globalTrans
   # add DAYSIM header file writing
