@@ -12,3 +12,4 @@ Things that need to be dealt with:
   # add functionality to allow the generation of a points grid for DAYSIM
   # add functionality to allow for the import of DAYSIM simulation results
   # add temporal map functionality?
+  # improve the menus; add file chooser capability for paths, etc
