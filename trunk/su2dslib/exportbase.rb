@@ -162,12 +162,6 @@ class ExportBase
                 uimessage("WARNING: Can't export entity of type '%s'!\n" % e.class)
             end
         }
-        # puts "HOW MANY TIMES DOES THIS HAPPEN???"   ########################################
-        # puts "THIS MANY ENTITIES: #{entity_list.length.to_s}" ##############################
-        # puts "ENTITY TYPES:" ###############################################################
-        # entity_list.each { |e| #############################################################
-        #     puts "   #{e.class}\n" #########################################################
-        # } ##################################################################################
         faces_text = ''
         numpoints = []
         faces.each_index { |i|
@@ -180,7 +174,8 @@ class ExportBase
             # else
             #     faces_text += rp.getText()
             else
-                faces_text += rp.getText(parenttrans)
+                faces_text += rp.getText(parenttrans)   ## faces_text seems to only be used for "by Group" export; text for 
+                                                        ## "by layer" and "by colour" export stored in $byLayer and $byColor
             end
         }
         
@@ -253,18 +248,14 @@ class ExportBase
         yz = ya.cross(za)
         if xy.dot(za) < 0
             return true
-            puts "mirror!" ###########################
         end
         if xz.dot(ya) > 0
             return true
-            puts "mirror!" ###########################
         end
         if yz.dot(xa) < 0
             return true
-            puts "mirror!" ###########################
         end
         return false
-        puts "no mirror!" ###########################
     end
     
     def createDirectory(path)

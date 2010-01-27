@@ -233,7 +233,7 @@ class MaterialContext < ExportBase
     end
     
     def getSaveMaterialName(mat)
-        ## generate a name that's save to use in Radiance
+        ## generate a name that's safe to use in Radiance
         if @aliasHash.has_key?(mat)
             return mat
         end

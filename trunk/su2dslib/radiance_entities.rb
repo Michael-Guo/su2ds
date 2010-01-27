@@ -324,33 +324,33 @@ class RadiancePolygon < ExportBase
         @verts = []
         @triangles = []
         if $TRIANGULATE == true
-            polymesh = @face.mesh 7 
-            polymesh.polygons.each { |p|
+            polymesh = @face.mesh 7 ## creates triangle mesh of face; this functionality is built in to Sketchup
+            polymesh.polygons.each { |p| ## each polygon is described by an array of the indices of the points that form it
                 verts = []
-                [0,1,2].each { |i|
+                [0,1,2].each { |i| ## iterates through each of the polygon's three vertices
                     idx = p[i]
-                    if idx < 0
+                    if idx < 0 ## Sketchup convention is to make vertex indices negative to indicate hidden edges; this just flips negative edges
                         idx *= -1
                     end
-                    verts.push(polymesh.point_at(idx))
+                    verts.push(polymesh.point_at(idx)) ## adds a Point3D object (called by polymesh.point_at) to verts array
                 }
-                @triangles.push(verts)
+                @triangles.push(verts) ## adds array of Point3D objects describing triangle face to @triangles array
             }
         else
-            face.loops.each { |l|
-                if l.outer? == true
-                    @verts = l.vertices
+            face.loops.each { |l| ## in Sketchup, a loop is a chain of edges describing the boundary of a face
+                if l.outer? == true ## checks if loop is "outer;" each face has one outer loop, and a loop for each hole
+                    @verts = l.vertices ## adds an array of Point3D objects to @verts array
                 end
             }
             face.loops.each { |l|
-                if l.outer? == false
-                    addLoop(l)
+                if l.outer? == false ## this is for holes
+                    addLoop(l) ## see below
                 end
             }
         end
     end
             
-    def addLoop(l)
+    def addLoop(l) ##
         ## create hole in polygon
         ## find centre of new loop
         c = getCentre(l)
@@ -358,11 +358,11 @@ class RadiancePolygon < ExportBase
         idx_out  = getNearestPointIndex(c, @verts)
         near_out = @verts[idx_out].position
         verts1 = @verts[0..idx_out]
-        verts2 = @verts[idx_out, @verts.length] 
+        verts2 = @verts[idx_out, @verts.length] ## splits outer loop vertices into two sets delineated by vertex closest to center of hole
         ## insert vertices of loop in reverse order to create hole
         idx_in = getNearestPointIndex(near_out, l.vertices)
-        verts_h = getHoleVertices(l, idx_in)
-        @verts = verts1 + verts_h + verts2
+        verts_h = getHoleVertices(l, idx_in) ## returns array of Point3D objects describing hole
+        @verts = verts1 + verts_h + verts2 ## inserts hole vertices between outer loop vertices, adding hole by basically tracing around it
     end
 
     def getHoleVertices(l, idx_in)
@@ -397,7 +397,7 @@ class RadiancePolygon < ExportBase
         return verts
     end
     
-    def getCentre(l)
+    def getCentre(l) ## simply averages each cartesian coordinate
         verts = l.vertices
         x_sum = 0
         y_sum = 0
