@@ -67,11 +67,11 @@ class PreferencesDialog
         @triangulate = false                        ## export faces as triangles (should always work)
         @unit       = 0.0254                        ## use meters for Radiance scene
         
-        @utc_offset = nil
-        @showradopts = true                        ## show Radiance option dialog
+        #@utc_offset = nil                          ## used for sky calculations; removed for su2ds
+        #@showradopts = true                        ## show Radiance option dialog ## removed for su2ds
         #@exportallviews = false                     ## export all saved views  ## removed for su2ds
 
-        @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'
+        @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'  ## this is mainly used for material stuff
         @build_material_lib = false                 ## update/create material library in file system
        
         printf "\n=====\nPreferencesDialog('#{filepath}')\n=====\n"
@@ -101,7 +101,7 @@ class PreferencesDialog
         # @makeglobal = $MAKEGLOBAL ## removed for su2ds
         @triangulate = $TRIANGULATE
         @unit       = $UNIT
-        @utc_offset = $UTC_OFFSET
+        #@utc_offset = $UTC_OFFSET  ## removed for su2ds
         #@showradopts = $SHOWRADOPTS  ## removed for su2ds
         #@exportallviews = $EXPORTALLVIEWS ## removed for su2ds
         @supportdir = $SUPPORTDIR
@@ -130,17 +130,17 @@ class PreferencesDialog
         a.collect! { |i| "%.1f" % i }
         utcs = 'nil|' + a.join("|")
         #prompts = [   'log level', 'export mode',  'global coords', 'triangulate faces',     'show options']   ## modified for su2ds
-        prompts = [   'log level', 'export mode',  'triangulate faces',     'show options']
+        prompts = [   'log level', 'export mode',  'triangulate faces']
         #values  = [     @loglevel,         @mode,      @makeglobal,   @triangulate.to_s,  @showradopts.to_s]
-        values  = [     @loglevel,         @mode,      @triangulate.to_s,  @showradopts.to_s]
+        values  = [     @loglevel,         @mode,      @triangulate.to_s]
         #choices = [     '0|1|2|3',         modes,     'true|false',        'true|false',       'true|false']
-        choices = [     '0|1|2|3',         modes,     'true|false',       'true|false']
+        choices = [     '0|1|2|3',         modes,     'true|false']
         #prompts += [  'export all views', 'unit', 'replmarks path', 'supportdir',         'update library',  'system clock offset']
-        prompts += [  'unit', 'supportdir',         'update library',  'system clock offset']
+        prompts += [  'unit', 'supportdir',         'update library']
         #values  += [@exportallviews.to_s,  @unit,       @replmarks,  @supportdir, @build_material_lib.to_s,       @utc_offset.to_s]
-        values  += [@unit,  @supportdir, @build_material_lib.to_s,       @utc_offset.to_s]
+        values  += [@unit,  @supportdir, @build_material_lib.to_s]
         #choices += [        'true|false',     '',               '',           '',             'true|false',                   utcs]
-        choices += [        '',           '',             'true|false',                   utcs]
+        choices += [        '',           '',             'true|false']
         
         dlg = UI.inputbox(prompts, values, choices, 'preferences')
         if not dlg
@@ -160,28 +160,28 @@ class PreferencesDialog
         #@triangulate = truefalse(dlg[3])
         @triangulate = truefalse(dlg[2])
         #@showradopts = truefalse(dlg[4])
-        @showradopts = truefalse(dlg[3])
+        #@showradopts = truefalse(dlg[3])
         #@exportallviews = truefalse(dlg[5])
         #@exportallviews = truefalse(dlg[4])
         begin
             #@unit = dlg[6].to_f
-            @unit = dlg[4].to_f
+            @unit = dlg[3].to_f
         rescue
             #printf "unit setting not a number('#{dlg[6]}') => ignored\n"
-            printf "unit setting not a number('#{dlg[4]}') => ignored\n"
+            printf "unit setting not a number('#{dlg[3]}') => ignored\n"
         end 
         #@replmarks  = dlg[7]
         #@supportdir = dlg[8]
-        @supportdir = dlg[5]
+        @supportdir = dlg[4]
         #@build_material_lib = dlg[9]
-        @build_material_lib = dlg[6]
+        @build_material_lib = dlg[5]
         #if dlg[10] == 'nil'
-        if dlg[7] == 'nil'
-            @utc_offset = nil
-        else
-            #@utc_offset = dlg[10].to_f
-            @utc_offset = dlg[7].to_f
-        end
+        # if dlg[6] == 'nil'        ## removed for su2ds
+        #     @utc_offset = nil
+        # else
+        #     #@utc_offset = dlg[10].to_f
+        #     @utc_offset = dlg[6].to_f
+        # end
         validate()
     end    
     
@@ -238,7 +238,7 @@ class PreferencesDialog
         $MODE       = @mode 
         # $MAKEGLOBAL = @makeglobal  ## removed for su2ds
         $TRIANGULATE = @triangulate
-        $UTC_OFFSET = @utc_offset
+        #$UTC_OFFSET = @utc_offset  ## removed for su2ds
         $UNIT       = @unit
         $SUPPORTDIR = @supportdir
         #$SHOWRADOPTS        = @showradopts ## removed for su2ds
@@ -247,14 +247,14 @@ class PreferencesDialog
     end
     
     def getSettingsText
-        if $UTC_OFFSET == nil
-            utc = 'nil' 
-        else
-            utc = "%.1f" % $UTC_OFFSET
-        end
+        # if $UTC_OFFSET == nil     ## removed for su2ds
+        #             utc = 'nil' 
+        #         else
+        #             utc = "%.1f" % $UTC_OFFSET
+        #         end
         l= ["$LOGLEVEL              = #{$LOGLEVEL}",
             "$UNIT                  = %.4f" % $UNIT,
-            "$UTC_OFFSET            = %s" % utc,
+            #{}"$UTC_OFFSET            = %s" % utc, ## removed for su2ds
             "$SUPPORTDIR            = '#{$SUPPORTDIR}'",
             #{}"$REPLMARKS             = '#{$REPLMARKS}'",  ## removed for su2ds
             "$MODE                  = '#{$MODE}'",
