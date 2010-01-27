@@ -1,9 +1,12 @@
+#summary to-do list of items on the project
+
 === Josh's to-do list ===
 
 Things that need to be dealt with:
 
-  # Radiance dialogue: I'm pretty sure I won't need any of the Radiance rendering options in @radOpts; thus, if I can, I should try to rid the code of all references to @radOpts and the RadianceOptions dialogue entirely. This should probably wait until I have a better idea of how everything fits together.
+  # need to remove option mode dialogue from "export options," and make default mode "by layer"
   # Can I get rid of runPreview and related functionality? Probably
   # need to figure out how $nameContext works and what exactly it does
   # need to figure out parenttrans and $globalTrans
   # other things to potentially get rid of: copyReplFile, copyIESLuminaire (and other IES stuff)
+  # add header file capability!
