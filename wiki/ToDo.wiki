@@ -5,8 +5,10 @@
 Things that need to be dealt with:
 
   # need to remove option mode dialogue from "export options," and make default mode "by layer"
-  # Can I get rid of runPreview and related functionality? Probably
   # need to figure out how $nameContext works and what exactly it does
   # need to figure out parenttrans and $globalTrans
-  # other things to potentially get rid of: copyReplFile, copyIESLuminaire (and other IES stuff)
-  # add header file capability!
+  # add DAYSIM header file writing
+  # add dialog that allows user to select layers for export?
+  # add functionality to allow the generation of a points grid for DAYSIM
+  # add functionality to allow for the import of DAYSIM simulation results
+  # add temporal map functionality?
