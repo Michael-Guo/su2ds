@@ -192,23 +192,23 @@ class RadianceComponent < ExportBase
         end
     end
     
-    # def searchReplFile                            ## removed for su2ds; all exports in global coords
-    #     cpath = @entity.definition.path
-    #     if cpath == nil or cpath == false
-    #         return
-    #     end
-    #     if FileTest.exists?(cpath.sub('.skp', '.ies'))
-    #         @iesdata = cpath.sub('.skp', '.ies')
-    #         uimessage("ies data file '#{@iesdata}' found", 1)
-    #     end
-    #     if FileTest.exists?(cpath.sub('.skp', '.oct'))
-    #         @replacement = cpath.sub('.skp', '.oct')
-    #         uimessage("replacement file '#{@replacement}' found", 1)
-    #     elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
-    #         @replacement = cpath.sub('.skp', '.rad')
-    #         uimessage("replacement file '#{@replacement}' found", 1)
-    #     end
-    # end
+    def searchReplFile
+        cpath = @entity.definition.path
+        if cpath == nil or cpath == false
+            return
+        end
+        if FileTest.exists?(cpath.sub('.skp', '.ies'))
+            @iesdata = cpath.sub('.skp', '.ies')
+            uimessage("ies data file '#{@iesdata}' found", 1)
+        end
+        if FileTest.exists?(cpath.sub('.skp', '.oct'))
+            @replacement = cpath.sub('.skp', '.oct')
+            uimessage("replacement file '#{@replacement}' found", 1)
+        elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
+            @replacement = cpath.sub('.skp', '.rad')
+            uimessage("replacement file '#{@replacement}' found", 1)
+        end
+    end
     
     def export(parenttrans)
         entities = @entity.definition.entities
@@ -510,17 +510,19 @@ class RadiancePolygon < ExportBase
                 if idx < 0
                     idx *= -1
                 end
-                verts.push(polymesh.point_at(idx))
+                verts.push(polymesh.point_at(idx)) ## verts is array of Geom::Point3D objects describing each point in triangle
             }
-            bbox = getbbox(*verts)
-            z = (verts[0].z + verts[1].z + verts[2].z) / 3.0
-            d = 0.25/$UNIT 
-            x = bbox[0]
-            while x <= bbox[2]
-                y = bbox[1] 
-                while y <= bbox[3]
+            bbox = getbbox(*verts)  ## bbox is 4 item array with x and y coordinates of box bounding triangle in xy plane 
+            z = (verts[0].z + verts[1].z + verts[2].z) / 3.0    ## surfaces inclined in the yz or xz plane discretized by first 
+                                                                ## triangulating then forcing all mesh points for each triangle
+                                                                ## to the same z coordinate, calculated here
+            d = 0.25/$UNIT  ## d can essentially be read as mesh density
+            x = bbox[0] ## bbox[0] is minimum x value of bounding surface 
+            while x <= bbox[2] ## bbox[2] = xmax            ## this is basically stepping through xy plane of surface in icrements
+                y = bbox[1] ## bbox[1] = ymin               ## of d, checking if the point is in within the surface and, if so,
+                while y <= bbox[3] ## bbox[3] = ymax        ## writing the point's coordinates to variable points (which is returned)
                     p = Geom::Point3d.new(x,y,z)
-                    if Geom::point_in_polygon_2D p, verts, true
+                    if Geom::point_in_polygon_2D p, verts, true ## checks if point that has been stepped to is in surface
                         points.push("%.2f %.2f %.2f 0 0 1" % [p.x*$UNIT, p.y*$UNIT, p.z*$UNIT])
                     end
                     y += d
@@ -531,13 +533,13 @@ class RadiancePolygon < ExportBase
         return points
     end
     
-    def getbbox(p1,p2,p3)
+    def getbbox(p1,p2,p3) ## p1, p2, p3 are Geom::Point3D objects
         xs = [p1.x,p2.x,p3.x]
         ys = [p1.y,p2.y,p3.y]
         xs.sort!
         ys.sort!
         d = 0.25
-        xmin = xs[0]*$UNIT - d
+        xmin = xs[0]*$UNIT - d  ## this logic effectively rounds up or down to the next increment of d
         xmin = ((xmin*4).to_i-1) / 4.0
         xmax = xs[2]*$UNIT + d
         xmax = ((xmax*4).to_i+1) / 4.0

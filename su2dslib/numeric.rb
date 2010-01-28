@@ -222,7 +222,7 @@ class NumericImport < ExportBase
             dz = v / @scalevalue
             points.push([x,y,z+dz])
         }
-        tris = triangulate(points)
+        tris = triangulate(points) ## note: this is the only time this method is called
         suPoints = points.collect { |p| Geom::Point3d.new(p[0], p[1], p[2]) }
         mesh = Geom::PolygonMesh.new(points.length, tris.length)
         tris.each { |v|

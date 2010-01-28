@@ -70,11 +70,12 @@ class RadianceScene < ExportBase
     def confirmExportDirectory
         ## show user dialog for export options
         ud = UserDialog.new() 
-        ud.addOption("export path", $export_dir)
-        ud.addOption("scene name", $scene_name)
+        ud.addOption("project path", $export_dir)
+        ud.addOption("project name", $scene_name)
         #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
         #ud.addOption("all views", $EXPORTALLVIEWS) ## removed for su2ds
-        ud.addOption("mode", $MODE, "by group|by layer|by color")
+        #ud.addOption("mode", $MODE, "by group|by layer|by color")  ## this removed from "export options" dialog and now only in 
+                                                                    ## preferences dialog as an "advanced" option
         ud.addOption("triangulate", $TRIANGULATE)
         # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
         #     ud.addOption("global coords", $MAKEGLOBAL) 
@@ -88,9 +89,9 @@ class RadianceScene < ExportBase
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
             #$MODE = ud.results[4]
-            $MODE = ud.results[2]
+            #$MODE = ud.results[2]
             #$TRIANGULATE = ud.results[5]
-            $TRIANGULATE = ud.results[3]
+            $TRIANGULATE = ud.results[2]
             # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
             #     $MAKEGLOBAL = ud.results[5]
             # end
@@ -200,7 +201,7 @@ class RadianceScene < ExportBase
         $nameContext.pop()
         $materialContext.export()
 #        createRifFile() removed for su2ds
-        runPreview()
+        # runPreview() removed for su2ds
         writeLogFile()
     end
     
@@ -228,15 +229,15 @@ class RadianceScene < ExportBase
         createMainScene(references, '')
     end
     
-    def runPreview
-        ##TODO: preview
-        if $RAD == '' or $PREVIEW != true
-            return
-        end
-        dir, riffile = File.split(getFilename("%s.rif" % $scene_name))
-        #Dir.chdir("#{$export_dir}/#{$scene_name}")
-        #cmd = "%s -o x11 %s" % [$RAD, riffile]
-    end
+    # def runPreview    ## removed for su2ds
+    #     ##TODO: preview
+    #     if $RAD == '' or $PREVIEW != true
+    #         return
+    #     end
+    #     dir, riffile = File.split(getFilename("%s.rif" % $scene_name))
+    #     #Dir.chdir("#{$export_dir}/#{$scene_name}")
+    #     #cmd = "%s -o x11 %s" % [$RAD, riffile]
+    # end
     
     def writeLogFile
         line = "###  finished: %s  ###" % Time.new()
