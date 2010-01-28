@@ -88,6 +88,19 @@ class RadianceGroup < ExportBase
         return ref
     end
     
+    ## new for su2ds
+    def exportPoints(parenttrans)
+        entities = @entity.entities ## @entity should be a Sketchup group; this retrieves the entities from that group
+        name = getUniqueName(@entity.name) ## creates unique name for group in case of duplicates
+        parenttrans *= @entity.transformation
+        $nameContext.push(name)
+        oldglobal = $globaltrans
+        $globaltrans *= @entity.transformation
+        ref = exportPointsByGroup(entities, parenttrans)
+        $globaltrans = oldglobal
+        $nameContext.pop()
+        return ref
+    end
 end 
 
 
@@ -516,7 +529,7 @@ class RadiancePolygon < ExportBase
             z = (verts[0].z + verts[1].z + verts[2].z) / 3.0    ## surfaces inclined in the yz or xz plane discretized by first 
                                                                 ## triangulating then forcing all mesh points for each triangle
                                                                 ## to the same z coordinate, calculated here
-            d = 0.25/$UNIT  ## d can essentially be read as mesh density
+            d = $point_spacing/$UNIT  ## d can essentially be read as mesh point spacing, in $UNITs 
             x = bbox[0] ## bbox[0] is minimum x value of bounding surface 
             while x <= bbox[2] ## bbox[2] = xmax            ## this is basically stepping through xy plane of surface in icrements
                 y = bbox[1] ## bbox[1] = ymin               ## of d, checking if the point is in within the surface and, if so,
@@ -538,15 +551,19 @@ class RadiancePolygon < ExportBase
         ys = [p1.y,p2.y,p3.y]
         xs.sort!
         ys.sort!
-        d = 0.25
-        xmin = xs[0]*$UNIT - d  ## this logic effectively rounds up or down to the next increment of d
-        xmin = ((xmin*4).to_i-1) / 4.0
+        d = $point_spacing
+        xmin = xs[0]*$UNIT - d  
+        #xmin = ((xmin*4).to_i-1) / 4.0  ## essentially rounds up/down to nearest 0.25 (in export units)
+        xmin = ((xmin*10).to_i-1) / 10.0  ## changed for su2ds
         xmax = xs[2]*$UNIT + d
-        xmax = ((xmax*4).to_i+1) / 4.0
+        #xmax = ((xmax*4).to_i+1) / 4.0
+        xmax = ((xmax*10).to_i+1) / 10.0
         ymin = ys[0]*$UNIT - d
-        ymin = ((ymin*4).to_i-1) / 4.0
+        #ymin = ((ymin*4).to_i-1) / 4.0
+        ymin = ((ymin*10).to_i-1) / 10.0
         ymax = ys[2]*$UNIT + d
-        ymax = ((ymax*4).to_i+1) / 4.0
+        #ymax = ((ymax*4).to_i+1) / 4.0
+        ymax = ((ymax*10).to_i+1) / 10.0
         return [xmin/$UNIT, ymin/$UNIT, xmax/$UNIT, ymax/$UNIT]
     end
 end 

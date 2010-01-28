@@ -207,6 +207,53 @@ class ExportBase
         end
     end
     
+    ## new for su2ds
+    def exportPointsByGroup(entity_list, parenttrans, instance=false)  
+        references = []
+        faces = []
+        entity_list.each { |e| 
+            if e.class == Sketchup::Group 
+                if not isVisible(e) 
+                    next
+                end
+                rg = RadianceGroup.new(e) 
+                ref = rg.exportPoints(parenttrans) 
+                references.push(ref)
+            elsif e.class == Sketchup::ComponentInstance
+                if not isVisible(e)
+                    next
+                end
+                uimessage("WARNING: Components cannot be discretized into point meshes")
+            elsif e.class == Sketchup::Face
+                if instance == false
+                    ## skip layer test if instance is exported
+                    if not isVisible(e)
+                        next
+                    end
+                end
+                faces.push(e)
+            elsif e.class == Sketchup::Edge
+                next
+            else
+                uimessage("WARNING: Can't export entity of type '%s'!\n" % e.class)
+            end
+        }
+        faces_text = ''
+        numpoints = []
+        faces.each_index { |i|
+            f = faces[i]
+            rp = RadiancePolygon.new(f,i)
+            numpoints += rp.getNumericPoints()
+        }
+        
+        if numpoints != []
+            createNumericFile(numpoints)
+        end
+        
+        ## stats message  
+        uimessage("meshed %d faces, creating %d points" % [faces.length, numpoints.length])        
+    end
+    
     def createMainScene(references, faces_text, parenttrans)
         ## only implemented by RadianceScene
         true
