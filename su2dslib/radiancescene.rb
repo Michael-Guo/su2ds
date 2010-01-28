@@ -13,7 +13,7 @@ class RadianceScene < ExportBase
         $export_dir = Dir.pwd()
         $points_layer = "points" ## added for su2ds
         $point_spacing = 0.25  ## added for su2ds. Note: this is in export units, not Sketchup units
-        $point_text = "" ## added for su2ds
+        $point_text = [] ## added for su2ds
         setExportDirectory() ## sets $scene_name and $export_dir variables
         
         #@copy_textures = true
@@ -132,7 +132,7 @@ class RadianceScene < ExportBase
             $export_dir = ud.results[0] 
             $scene_name = ud.results[1]
             $points_layer = ud.results[2]
-            $grid_spacing = ud.results[3].to_f
+            $point_spacing = ud.results[3].to_f
         else
             uimessage('export canceled')
             return false
@@ -243,6 +243,7 @@ class RadianceScene < ExportBase
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($scene_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
+        createPointsFile($point_text)
         $nameContext.pop()
         writeLogFile()
     end
@@ -252,11 +253,8 @@ class RadianceScene < ExportBase
         pointsEntities = []
         entities.each{ |e|
             if e.layer.name.downcase == $points_layer.downcase
-                #puts e.class #######################
                 pointsEntities.push(e)
             else
-                #puts e.class #######################
-                #puts e.layer.name ##################
                 next
             end
         }
