@@ -77,18 +77,18 @@ end
 
 ## define defaults if config file is messed up
 $BUILD_MATERIAL_LIB = false
-$EXPORTALLVIEWS     = false 
-$MAKEGLOBAL         = false     
+#$EXPORTALLVIEWS     = false    ## removed for su2ds
+#$MAKEGLOBAL         = false    ## removed for su2ds     
 $LOGLEVEL           = 0                ## don't report details
-$MODE               = 'by group'       ## "by group"|"by layer"|"by color"
+$MODE               = 'by layer'       ## "by group"|"by layer"|"by color"
 $RAD                = ''
-$REPLMARKS          = '/usr/local/bin/replmarks' 
-$PREVIEW            = false        
-$SHOWRADOPTS        = true
+#$REPLMARKS          = '/usr/local/bin/replmarks' ## removed for su2ds
+#$PREVIEW            = false       ## removed for su2ds 
+#$SHOWRADOPTS        = true         ## removed for su2ds
 $SUPPORTDIR         = '/Library/Application Support/Google Sketchup 7/Sketchup'
 $TRIANGULATE        = false    
 $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radiance)
-$UTC_OFFSET         = nil
+#$UTC_OFFSET         = nil          ## removed for su2ds
 $ZOFFSET            = nil     
 
 ## try to load configuration from file
@@ -111,7 +111,16 @@ def startExport ## modified for su2ds
     end 
 end
 
-
+## new for su2ds
+def startPointsExport
+    begin
+        rs = RadianceScene.new()
+        rs.exportPoints
+    rescue => e
+        msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+        UI.messagebox msg
+    end
+end
 
 $matConflicts = nil
 
@@ -169,6 +178,7 @@ else
             radmenu = pmenu.add_submenu("su2ds")
             #radmenu.add_item("export scene") { startExport(0) } ## modified for su2ds
             radmenu.add_item("export scene") { startExport }
+            radmenu.add_item("create sensor point mesh") { startPointsExport }
             #radmenu.add_item("export selection") { startExport(1) } ## removed for su2ds
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
