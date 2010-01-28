@@ -303,7 +303,8 @@ class ExportBase
     def createNumericFile(points)
         ## write points to file in a save way; if file exists merge points
         name = $nameContext[-1]
-        filename = getFilename("numeric/#{name}.fld")
+        #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
+        filename = getFilename("/#{name}.pts")
         if FileTest.exists?(filename)
             uimessage("updating field '%s'" % filename)
             f = File.new(filename)

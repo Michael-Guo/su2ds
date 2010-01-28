@@ -62,7 +62,7 @@ class PreferencesDialog
         
         @loglevel   = 0                             ## level of report messages
         #@replmarks  = '/usr/local/bin/replmarks'    ## path to replmarks binary    ## removed for su2ds
-        @mode       = 'by group'                    ## "by group"|"by layer"|"by color"
+        @mode       = 'by layer'                    ## "by group"|"by layer"|"by color"
         #@makeglobal = false                         ## keep local coordinates of groups and instances  ## removed for su2ds
         @triangulate = false                        ## export faces as triangles (should always work)
         @unit       = 0.0254                        ## use meters for Radiance scene
@@ -264,8 +264,9 @@ class PreferencesDialog
             #{}"$EXPORTALLVIEWS        = #{$EXPORTALLVIEWS}", ## removed for su2ds
             "$BUILD_MATERIAL_LIB    = #{$BUILD_MATERIAL_LIB}",
             "$ZOFFSET               = nil",
-            "$RAD                   = ''",
-            "$PREVIEW               = false"]
+            #{}"$RAD                   = ''",
+            "$RAD                   = ''"]
+            #{}"$PREVIEW               = false"]  ## removed for su2ds
         return l.join("\n")
     end
 end

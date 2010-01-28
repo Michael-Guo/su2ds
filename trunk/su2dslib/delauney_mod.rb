@@ -14,7 +14,7 @@
 
 module Delauney
 
-    def incircum(xp, yp, x1, y1, x2, y2, x3, y3)
+    def incircum(xp, yp, x1, y1, x2, y2, x3, y3)  ## note: this method only used as part of the triangulate method below
 
       eps = 0.000001
       res = [FALSE, FALSE]
@@ -70,7 +70,7 @@ module Delauney
 
     end
 
-    # Takes as input a array with NVERT lines, each line is a array with
+    # Takes as input an array with NVERT lines, each line is a array with
     # three values x, y, and z (vertex[j][0] = x value of j + 1 component)
     # and return a array with NTRI lines, each line is a array with three
     # values i, j, and k (each value is the index of a point in the input
