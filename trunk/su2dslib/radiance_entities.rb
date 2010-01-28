@@ -505,12 +505,12 @@ class RadiancePolygon < ExportBase
         return text
     end
 
-    def isNumeric 
-        if @face.layer.name.downcase == 'numeric'
-            return true
-        end
-        return false
-    end
+    # def isNumeric                                     ## removed for su2ds
+    #     if @face.layer.name.downcase == 'numeric'
+    #         return true
+    #     end
+    #     return false
+    # end
     
     def getNumericPoints
         polymesh = @face.mesh 7 
@@ -552,18 +552,19 @@ class RadiancePolygon < ExportBase
         xs.sort!
         ys.sort!
         d = $point_spacing
+        prec = 1/d
         xmin = xs[0]*$UNIT - d  
         #xmin = ((xmin*4).to_i-1) / 4.0  ## essentially rounds up/down to nearest 0.25 (in export units)
-        xmin = ((xmin*10).to_i-1) / 10.0  ## changed for su2ds
+        xmin = ((xmin*prec).to_i-1) / prec  ## changed for su2ds
         xmax = xs[2]*$UNIT + d
         #xmax = ((xmax*4).to_i+1) / 4.0
-        xmax = ((xmax*10).to_i+1) / 10.0
+        xmax = ((xmax*prec).to_i+1) / prec
         ymin = ys[0]*$UNIT - d
         #ymin = ((ymin*4).to_i-1) / 4.0
-        ymin = ((ymin*10).to_i-1) / 10.0
+        ymin = ((ymin*prec).to_i-1) / prec
         ymax = ys[2]*$UNIT + d
         #ymax = ((ymax*4).to_i+1) / 4.0
-        ymax = ((ymax*10).to_i+1) / 10.0
+        ymax = ((ymax*prec).to_i+1) / prec
         return [xmin/$UNIT, ymin/$UNIT, xmax/$UNIT, ymax/$UNIT]
     end
 end 

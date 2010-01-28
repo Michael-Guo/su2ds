@@ -167,8 +167,8 @@ class ExportBase
         faces.each_index { |i|
             f = faces[i]
             rp = RadiancePolygon.new(f,i)
-            if rp.isNumeric
-                numpoints += rp.getNumericPoints()
+            # if rp.isNumeric                                       ## removed for su2ds
+            #                 numpoints += rp.getNumericPoints()
             # elsif $MAKEGLOBAL                             ## removed for su2ds
             #     faces_text += rp.getText(parenttrans)
             # else
@@ -180,9 +180,9 @@ class ExportBase
         }
         
         ## if we have numeric points save to *.fld file
-        if numpoints != []
-            createNumericFile(numpoints)
-        end
+        # if numpoints != []                    ## removed for su2ds
+        #     createNumericFile(numpoints)
+        # end
         
         ## stats message  
         uimessage("exported entities [refs=%d, faces=%d]" % [references.length, faces.length], 1)
@@ -243,12 +243,13 @@ class ExportBase
         faces.each_index { |i|
             f = faces[i]
             rp = RadiancePolygon.new(f,i)
-            numpoints += rp.getNumericPoints()
+            numpoints += rp.getNumericPoints() ## keep numpoints to count points for uimessage
         }
+        $point_text += numpoints ## update point text variable
         
-        if numpoints != []
-            createNumericFile(numpoints)
-        end
+        # if numpoints != [] ## moved this to RadianceScene
+        #             createNumericFile(numpoints)
+        #         end
         
         ## stats message  
         uimessage("meshed %d faces, creating %d points" % [faces.length, numpoints.length])        
@@ -347,9 +348,33 @@ class ExportBase
         return true
     end 
     
-    def createNumericFile(points)
+    # def createNumericFile(points)                                                 ## removed for su2ds
+    #     ## write points to file in a save way; if file exists merge points
+    #     name = $nameContext[-1]
+    #     #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
+    #     filename = getFilename("/#{name}.pts")
+    #     if FileTest.exists?(filename)
+    #         uimessage("updating field '%s'" % filename)
+    #         f = File.new(filename)
+    #         txt = f.read()
+    #         f.close()
+    #         oldpoints = txt.split("\n")
+    #         points += oldpoints
+    #     end
+    #     points.uniq!
+    #     points.sort!
+    #     text = points.join("\n")
+    #     if not createFile(filename, text)
+    #         uimessage("Error: Could not create numeric file '#{filename}'")
+    #     else
+    #         uimessage("Created field '%s' (%d points)" % [filename, points.length])
+    #     end
+    # end
+    
+    ## new for su2ds
+    def createPointsFile(points)
         ## write points to file in a save way; if file exists merge points
-        name = $nameContext[-1]
+        name = $scene_name
         #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
         filename = getFilename("/#{name}.pts")
         if FileTest.exists?(filename)
