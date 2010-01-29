@@ -8,7 +8,6 @@ Things that need to be dealt with:
   # need to figure out parenttrans and $globalTrans
   # add DAYSIM header file writing
   # add dialog that allows user to select layers for export?
-  # add functionality to allow the generation of a points grid for DAYSIM, the adjustment of the grid's density, and display of the grid
   # add functionality to allow for the import of DAYSIM simulation results
   # add temporal map functionality?
   # improve the menus; add file chooser capability for paths, etc
