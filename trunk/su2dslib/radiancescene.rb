@@ -239,7 +239,11 @@ class RadianceScene < ExportBase
         end
                    
         entities = Sketchup.active_model.entities
+        removeExistingPoints(entities) ## removes existing points grid
         pointsEntities = getPointsEntities(entities)
+        $points_group = entities.add_group ## new for su2ds; adds group to which points mesh will be added
+        $points_group.layer = $points_layer ## puts points group on same layer as geometry used to create mesh
+        $points_group.set_attribute("grid", "is_grid", true) ## marks group as containing the points mesh
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($scene_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
@@ -260,6 +264,21 @@ class RadianceScene < ExportBase
         }
         return pointsEntities
     end
+    
+    def removeExistingPoints(entities)  
+        entities.each { |e|
+            if (e.class == Sketchup::Group) && (e.attribute_dictionary("grid") != nil)
+                if e.attribute_dictionary("grid")["is_grid"]
+                    e.erase!
+                end
+            elsif e.class == Sketchup::Group ## added in case points group gets added to another group
+                removeExistingPoints(e.entities)
+            else
+                next
+            end
+        }
+    end
+    
     
     def saveFilesByCL
         if $MODE == 'by layer'

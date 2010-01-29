@@ -173,10 +173,10 @@ class ExportBase
             #     faces_text += rp.getText(parenttrans)
             # else
             #     faces_text += rp.getText()
-            else
-                faces_text += rp.getText(parenttrans)   ## faces_text seems to only be used for "by Group" export; text for 
-                                                        ## "by layer" and "by colour" export stored in $byLayer and $byColor
-            end
+            #else
+            faces_text += rp.getText(parenttrans)   ## faces_text seems to only be used for "by Group" export; text for 
+                                                    ## "by layer" and "by colour" export stored in $byLayer and $byColor
+            #end
         }
         
         ## if we have numeric points save to *.fld file
@@ -208,7 +208,7 @@ class ExportBase
     end
     
     ## new for su2ds
-    def exportPointsByGroup(entity_list, parenttrans, instance=false)  
+    def exportPointsByGroup(entity_list, parenttrans, instance=false)   
         references = []
         faces = []
         entity_list.each { |e| 
