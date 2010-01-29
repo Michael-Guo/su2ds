@@ -535,8 +535,10 @@ class RadiancePolygon < ExportBase
                 y = bbox[1] ## bbox[1] = ymin               ## of d, checking if the point is in within the surface and, if so,
                 while y <= bbox[3] ## bbox[3] = ymax        ## writing the point's coordinates to variable points (which is returned)
                     p = Geom::Point3d.new(x,y,z)
-                    if Geom::point_in_polygon_2D p, verts, true ## checks if point that has been stepped to is in surface
+                    if Geom::point_in_polygon_2D p, verts, false ## checks if point that has been stepped to is in surface
                         points.push("%.2f %.2f %.2f 0 0 1" % [p.x*$UNIT, p.y*$UNIT, p.z*$UNIT])
+                        cpoint = $points_group.entities.add_cpoint(p) ## adds point to points group
+                        cpoint.layer = $points_layer ## puts point on points layer
                     end
                     y += d
                 end
@@ -552,19 +554,19 @@ class RadiancePolygon < ExportBase
         xs.sort!
         ys.sort!
         d = $point_spacing
-        prec = 1/d
-        xmin = xs[0]*$UNIT - d  
+        prec = 1/d 
+        xmin = xs[0]*$UNIT - d   
         #xmin = ((xmin*4).to_i-1) / 4.0  ## essentially rounds up/down to nearest 0.25 (in export units)
-        xmin = ((xmin*prec).to_i-1) / prec  ## changed for su2ds
+        xmin = ((xmin*prec).to_i-0.5) / prec  ## changed for su2ds
         xmax = xs[2]*$UNIT + d
         #xmax = ((xmax*4).to_i+1) / 4.0
-        xmax = ((xmax*prec).to_i+1) / prec
+        xmax = ((xmax*prec).to_i+0.5) / prec
         ymin = ys[0]*$UNIT - d
         #ymin = ((ymin*4).to_i-1) / 4.0
-        ymin = ((ymin*prec).to_i-1) / prec
+        ymin = ((ymin*prec).to_i-0.5) / prec
         ymax = ys[2]*$UNIT + d
         #ymax = ((ymax*4).to_i+1) / 4.0
-        ymax = ((ymax*prec).to_i+1) / prec
+        ymax = ((ymax*prec).to_i+0.5) / prec
         return [xmin/$UNIT, ymin/$UNIT, xmax/$UNIT, ymax/$UNIT]
     end
 end 
