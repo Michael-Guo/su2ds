@@ -4,8 +4,8 @@
 
 Things that need to be dealt with:
 
+  # should probably change all instances of $scene_name to $project_name; less confusing
   # need to figure out how $nameContext works and what exactly it does
-  # need to figure out parenttrans and $globalTrans
   # add DAYSIM header file writing
   # add dialog that allows user to select layers for export?
   # add functionality to allow for the import of DAYSIM simulation results
