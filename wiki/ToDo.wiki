@@ -12,3 +12,4 @@ Things that need to be dealt with:
   # add temporal map functionality?
   # improve the menus; add file chooser capability for paths, etc
   # some sort of materials functionality -- see DAYSIM tutorial (apparently there is a Sketchup materials file that can be downloaded; there is also some comment on the issue of material mismatches between the front and back sides of a face)
+  # add something to preferences dialog to specify DAYSIM bin directory and material directory
