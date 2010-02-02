@@ -1,4 +1,5 @@
 require "su2dslib/exportbase.rb"
+require "su2dslib/location.rb"  ## added for su2ds
 
 class RadianceScene < ExportBase
 
@@ -9,8 +10,10 @@ class RadianceScene < ExportBase
         initLog() ## intitiates log file
         #@radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
                                           ## removed this for su2ds
-        $scene_name = "unnamed_scene"
+        #$scene_name = "unnamed_scene"
+        $scene_name = Sketchup.active_model.get_attribute("modelData", "projectName", "unnamed_scene") ## added for su2ds
         $export_dir = Dir.pwd()
+        $weather_file = '' ## added for su2ds -- TODO is adding a better method for selecting this path
         $points_layer = "points" ## added for su2ds
         $point_spacing = 0.25  ## added for su2ds. Note: this is in export units, not Sketchup units
         $point_text = [] ## added for su2ds
@@ -73,8 +76,11 @@ class RadianceScene < ExportBase
     def confirmExportDirectory
         ## show user dialog for export options
         ud = UserDialog.new() 
-        ud.addOption("project path", $export_dir)
+        ud.addOption("project directory", $export_dir)
         ud.addOption("project name", $scene_name)
+        ud.addOption("weather file", $weather_file) ## added for su2ds
+        ud.addOption("points file", Sketchup.active_model.get_attribute("modelData", "pointsFilePath", "")) ## added for su2ds
+        ud.addOption("use present location", true) ## added for su2ds
         #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
         #ud.addOption("all views", $EXPORTALLVIEWS) ## removed for su2ds
         #ud.addOption("mode", $MODE, "by group|by layer|by color")  ## this removed from "export options" dialog and now only in 
@@ -91,10 +97,21 @@ class RadianceScene < ExportBase
             $scene_name = ud.results[1]
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
+            $weather_file = ud.results[2] ## added for su2ds
+            $points_file = ud.results[3] ## added for su2ds
+            if not ud.results[4] ## added for su2ds; calls location dialogue if user says not to use present location
+                begin
+                    ld = LocationDialog.new()
+                    ld.show()
+                rescue => e 
+                    msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+                    UI.messagebox msg            
+                end
+            end
             #$MODE = ud.results[4]
             #$MODE = ud.results[2]
             #$TRIANGULATE = ud.results[5]
-            $TRIANGULATE = ud.results[2]
+            $TRIANGULATE = ud.results[5]
             # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
             #     $MAKEGLOBAL = ud.results[5]
             # end
@@ -229,6 +246,7 @@ class RadianceScene < ExportBase
         $materialContext.export()
         # createRifFile() removed for su2ds
         # runPreview() removed for su2ds
+        Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
         writeLogFile()
     end
     
@@ -248,6 +266,8 @@ class RadianceScene < ExportBase
         $nameContext.push($scene_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
         createPointsFile($point_text)
+        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$scene_name}/#{$scene_name}") ## added for su2ds; stores point file path in model
+        Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
         $nameContext.pop()
         writeLogFile()
     end
@@ -263,6 +283,26 @@ class RadianceScene < ExportBase
             end
         }
         return pointsEntities
+    end
+    
+    ## new for su2ds
+    def writeHeaderFile
+        text = ""
+        text += "#######################\n"
+        text += "# DAYSIM HEADER FILE\n"
+        text += "# created by su2ds at #{Time.now.asctime}\n"
+        text += "#######################\n\n"
+        text += "project_name       #{$scene_name}\n"
+        text += "project_directory  #{$export_dir}\n"
+        text += "bin_directory      C:/DAYSIM/bin_windows\n"
+        text += "material_directory C:/DAYSIM/materials\n"
+        text += "tmp_directory      #{$export_dir}/tmp\n\n"
+        text += "#######################\n"
+        text += "# DAYSIM HEADER FILE\n"
+        text += "# created by su2ds at #{Time.now.asctime}\n"
+        text += "#######################\n\n"
+        ## this is obviously incomplete
+        
     end
     
     def removeExistingPoints(entities)  

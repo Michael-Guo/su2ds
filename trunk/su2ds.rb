@@ -38,6 +38,7 @@ require "su2dslib/numeric.rb"
 require "su2dslib/material.rb"
 require "su2dslib/radiance_entities.rb"
 require "su2dslib/radiancescene.rb"
+require "su2dslib/location.rb"
 
 $RADPRIMITIVES = {  "plastic"    => 1,
                     "glass"      => 1,
@@ -61,6 +62,7 @@ if $DEBUG
     load "su2dslib/material.rb"
     load "su2dslib/radiance_entities.rb"
     load "su2dslib/radiancescene.rb"
+    load "su2dslib/location.rb"
 end
 
 ## simple method for reloading all script files from console
@@ -72,6 +74,7 @@ def loadScripts
     load "su2dslib/material.rb"
     load "su2dslib/radiance_entities.rb"
     load "su2dslib/radiancescene.rb"
+    load "su2dslib/location.rb"
 end
 
 
@@ -153,7 +156,15 @@ def startImport(f='')
     end
 end
 
-
+def locationDialog ## added for su2ds
+    begin
+        ld = LocationDialog.new()
+        ld.show()
+    rescue => e 
+        msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+        UI.messagebox msg            
+    end 
+end
 
 def preferencesDialog
     pd = PreferencesDialog.new()
@@ -179,6 +190,7 @@ else
             #radmenu.add_item("export scene") { startExport(0) } ## modified for su2ds
             radmenu.add_item("export scene") { startExport }
             radmenu.add_item("create sensor point mesh") { startPointsExport }
+            radmenu.add_item("set location") { locationDialog } ## added for su2ds
             #radmenu.add_item("export selection") { startExport(1) } ## removed for su2ds
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
