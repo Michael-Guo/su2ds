@@ -188,7 +188,7 @@ else
             pmenu = UI.menu("Plugin")
             radmenu = pmenu.add_submenu("su2ds")
             #radmenu.add_item("export scene") { startExport(0) } ## modified for su2ds
-            radmenu.add_item("export scene") { startExport }
+            radmenu.add_item("create DAYSIM header file") { startExport }
             radmenu.add_item("create sensor point mesh") { startPointsExport }
             radmenu.add_item("set location") { locationDialog } ## added for su2ds
             #radmenu.add_item("export selection") { startExport(1) } ## removed for su2ds

@@ -10,8 +10,7 @@ class RadianceScene < ExportBase
         initLog() ## intitiates log file
         #@radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
                                           ## removed this for su2ds
-        #$scene_name = "unnamed_scene"
-        $scene_name = Sketchup.active_model.get_attribute("modelData", "projectName", "unnamed_scene") ## added for su2ds
+        $scene_name = "unnamed_scene"
         $export_dir = Dir.pwd()
         $weather_file = '' ## added for su2ds -- TODO is adding a better method for selecting this path
         $points_layer = "points" ## added for su2ds
@@ -64,9 +63,15 @@ class RadianceScene < ExportBase
     def setExportDirectory
         ## get name of subdir for Radiance file structure
         page = @model.pages.selected_page
-        if page != nil
-            $scene_name = remove_spaces(page.name)
+        # if page != nil
+        #     $scene_name = remove_spaces(page.name)
+        # end
+        if Sketchup.active_model.get_attribute("modelData", "projectName") != nil
+            $scene_name = Sketchup.active_model.get_attribute("modelData", "projectName")
+        elsif page != nil
+            @scene_name = remove_spaces(page.name)
         end
+        
         path = Sketchup.active_model.path
         if path != '' and path.length > 5:
             $export_dir = path[0..-5]
@@ -247,6 +252,7 @@ class RadianceScene < ExportBase
         # createRifFile() removed for su2ds
         # runPreview() removed for su2ds
         Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
+        writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
     end
     
@@ -266,7 +272,7 @@ class RadianceScene < ExportBase
         $nameContext.push($scene_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
         createPointsFile($point_text)
-        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$scene_name}/#{$scene_name}") ## added for su2ds; stores point file path in model
+        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$scene_name}/#{$scene_name}.pts") ## added for su2ds; stores point file path in model
         Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
         $nameContext.pop()
         writeLogFile()
@@ -287,6 +293,8 @@ class RadianceScene < ExportBase
     
     ## new for su2ds
     def writeHeaderFile
+        ## create text for header file
+        s = Sketchup.active_model.shadow_info
         text = ""
         text += "#######################\n"
         text += "# DAYSIM HEADER FILE\n"
@@ -294,14 +302,41 @@ class RadianceScene < ExportBase
         text += "#######################\n\n"
         text += "project_name       #{$scene_name}\n"
         text += "project_directory  #{$export_dir}\n"
-        text += "bin_directory      C:/DAYSIM/bin_windows\n"
+        text += "bin_directory      C:/DAYSIM/bin_windows\n" ## maybe change code to make this be specified in preferences dialog?
         text += "material_directory C:/DAYSIM/materials\n"
         text += "tmp_directory      #{$export_dir}/tmp\n\n"
         text += "#######################\n"
-        text += "# DAYSIM HEADER FILE\n"
-        text += "# created by su2ds at #{Time.now.asctime}\n"
-        text += "#######################\n\n"
-        ## this is obviously incomplete
+        text += "# site information\n"
+        text += "#######################\n"
+        text += "place                    #{s['City']}\n"
+        text += "latitude                 #{s['Latitude']}\n"
+        text += "longitude                #{s['Longitude']}\n"
+        text += "time_zone                #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
+        text += "site_elevation           #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
+        text += "scene_rotation_angle     #{s['NorthAngle']}\n"
+        text += "time_step                60\n"
+        text += "wea_data_short_file      #{$weather_file}\n"
+        text += "lower_direct_threshold   2\n"
+        text += "lower_diffuse_threshold  2\n"
+        text += "output_units             2\n\n"
+        text += "#######################\n"
+        text += "# building information\n"
+        text += "#######################\n"
+        text += "material_file            #{$scene_name}_material.rad\n"
+        text += "geometry_file            #{$scene_name}_geometry.rad\n"
+        text += "radiance_source_files    1,#{$scene_name}.rad\n"
+        text += "sensor_file              #{$points_file}\n"
+        text += "shading                  0\n"
+        text += "ViewPoint                0\n"
+        
+        ## write header file
+        name = $scene_name
+        filename = getFilename("/#{name}.hea")
+        if not createFile(filename, text)
+            uimessage("Error: could not create DAYSIM header file '#{filename}'")
+        else
+            uimessage("Created DAYSIM header file '#{filename}'")
+        end
         
     end
     
