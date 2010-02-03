@@ -258,12 +258,11 @@ class RadianceScene < ExportBase
     
     ## new for su2ds
     def exportPoints ## exports points file for Daysim analysis
-        if not confirmPointsExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}")
+        if not confirmPointsExportDirectory or not removeExistingPoints("#{$export_dir}/#{$project_name}/#{$project_name}.pts")
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
         entities = Sketchup.active_model.entities
-        removeExistingPoints(entities) ## removes existing points grid
         pointsEntities = getPointsEntities(entities)
         $points_group = entities.add_group ## new for su2ds; adds group to which points mesh will be added
         $points_group.layer = $points_layer ## puts points group on same layer as geometry used to create mesh
@@ -340,14 +339,35 @@ class RadianceScene < ExportBase
         
     end
     
-    def removeExistingPoints(entities)  
+    def removeExistingPoints(points_file)
+        if FileTest.exists?(points_file) ## Ruby utility; returns true if scene_dir exists
+            file_name = File.basename(points_file) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
+            ui_result = (UI.messagebox "Remove existing points file\n'#{file_name}'?", MB_OKCANCEL, "Remove points file?")
+            if ui_result == 1
+                # give status message
+                uimessage('removing points file')
+                # delete points file
+                File.delete(points_file)
+                uimessage("deleted file '#{points_file}'", 3)
+            else
+                uimessage('export canceled')
+                return false
+            end
+        end
+        # remove point entities from model
+        entities = Sketchup.active_model.entities
+        removePointsFromModel(entities) 
+        return true
+    end
+    
+    def removePointsFromModel(entities)  
         entities.each { |e|
             if (e.class == Sketchup::Group) && (e.attribute_dictionary("grid") != nil)
                 if e.attribute_dictionary("grid")["is_grid"]
                     e.erase!
                 end
             elsif e.class == Sketchup::Group ## added in case points group gets added to another group
-                removeExistingPoints(e.entities)
+                removePointsFromModel(e.entities)
             else
                 next
             end

@@ -10,11 +10,12 @@ class ExportBase
     end
    
     def clearDirectory(scene_dir)
+        points_file = []
         uimessage("clearing directory '#{scene_dir}'")
-        Dir.foreach(scene_dir) { |f|
+        Dir.foreach(scene_dir) { |f|  # Dir.foreach calls block once for each entry in argument directory, passing name of entry each time
             fpath = File.join(scene_dir, f)
-	    if f == '.' or f == '..'
-		next
+	        if f == '.' or f == '..'
+		        next
             elsif f[0,1] == '.'
                 next
             elsif FileTest.directory?(fpath) == true
@@ -26,12 +27,20 @@ class ExportBase
                     uimessage("directory '#{fpath}' not empty")
                 end
             elsif FileTest.file?(fpath) == true
-		File.delete(fpath)
+                # if f == File.basename(Sketchup.active_model.get_attribute("modelData","pointsFilePath","")) ##
+                #     pf = File.open(f, "r")                                                                  ##  added
+                #     points_text = pf.readlines.join("\n")                                                   ##  for
+                #     pf.close                                                                                ##  su2ds
+                # end                                                                                         ##
+                # points_file[0] = f                                                                          ##
+                # points_file[1] = points_text                                                                ##
+		        File.delete(fpath)
                 uimessage("deleted file '#{fpath}'", 3)
             else
                 uimessage("unexpected entry in file system: '#{fpath}'")
             end
         }
+        #return points_file ## added for su2ds
     end
     
     def find_support_files(filename, subdir="")
@@ -158,6 +167,8 @@ class ExportBase
                 #@texturewriter.load(e,true)
             elsif e.class == Sketchup::Edge
                 next
+            elsif e.class == Sketchup::ConstructionPoint  ## added for su2ds
+                next
             else
                 uimessage("WARNING: Can't export entity of type '%s'!\n" % e.class)
             end
@@ -234,6 +245,8 @@ class ExportBase
                 faces.push(e)
             elsif e.class == Sketchup::Edge
                 next
+            elsif e.class == Sketchup::ConstructionPoint ## added for su2ds
+                next
             else
                 uimessage("WARNING: Can't export entity of type '%s'!\n" % e.class)
             end
@@ -260,28 +273,33 @@ class ExportBase
         true
     end
     
-    def prepareSceneDir(scene_dir)
-        ["octrees", "images", "logfiles", "ambfiles"].each { |subdir|
-            createDirectory("#{scene_dir}/#{subdir}")
-        }
-    end 
+    # def prepareSceneDir(scene_dir)    ## removed for su2ds
+    #     ["octrees", "images", "logfiles", "ambfiles"].each { |subdir|
+    #         createDirectory("#{scene_dir}/#{subdir}")
+    #     }
+    # end 
     
-    def removeExisting(scene_dir)
-        if FileTest.exists?(scene_dir) ## Ruby utility; returns true if scene_dir exists
-            scene_name = File.basename(scene_dir) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
-            ui_result = (UI.messagebox "Remove existing directory\n'#{scene_name}'?", MB_OKCANCEL, "Remove directory?")
+    def removeExisting(project_dir)
+        if FileTest.exists?(project_dir) ## Ruby utility; returns true if project_dir exists
+            project_name = File.basename(project_dir) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
+            ui_result = (UI.messagebox "Remove existing DAYSIM project files?", MB_OKCANCEL, "Remove project files?")
             if ui_result == 1
-                uimessage('removing directories')
-                clearDirectory(scene_dir) ## deletes old directory
-                #prepareSceneDir(scene_dir) ## creates new Radiance directory structure, w/ "octrees," "images," "logfiles," 
+                uimessage('removing DAYSIM project files')
+                clearDirectory(project_dir) ## deletes old directory, returns text from any points files that were cleared
+                #prepareSceneDir(project_dir) ## creates new Radiance directory structure, w/ "octrees," "images," "logfiles," 
                                            ## and "ambfiles" folders. Removed for su2ds. 
+                # if points_file[0] != nil                        ## added for su2ds
+                #     path = "#{project_dir}/#{points_file[0]}"   ##
+                #     text = points_file[1]                       ##
+                #     createFile(path,text)                       ##
+                # end                                             ##
                 return true
             else
                 uimessage('export canceled')
                 return false
             end
         else
-            #prepareSceneDir(scene_dir)
+            #prepareSceneDir(project_dir)
         end
         return true
     end
