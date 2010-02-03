@@ -10,13 +10,13 @@ class RadianceScene < ExportBase
         initLog() ## intitiates log file
         #@radOpts = RadianceOptions.new() ## see interface.rb; sets radiance rendering options (note: doesn't prompt user for these)
                                           ## removed this for su2ds
-        $scene_name = "unnamed_scene"
+        $project_name = "unnamed_project"
         $export_dir = Dir.pwd()
         $weather_file = '' ## added for su2ds -- TODO is adding a better method for selecting this path
         $points_layer = "points" ## added for su2ds
         $point_spacing = 0.25  ## added for su2ds. Note: this is in export units, not Sketchup units
         $point_text = [] ## added for su2ds
-        setExportDirectory() ## sets $scene_name and $export_dir variables
+        setExportDirectory() ## sets $project_name and $export_dir variables
         
         #@copy_textures = true
         #@texturewriter = Sketchup.create_texture_writer
@@ -64,10 +64,10 @@ class RadianceScene < ExportBase
         ## get name of subdir for Radiance file structure
         page = @model.pages.selected_page
         # if page != nil
-        #     $scene_name = remove_spaces(page.name)
+        #     $project_name = remove_spaces(page.name)
         # end
         if Sketchup.active_model.get_attribute("modelData", "projectName") != nil
-            $scene_name = Sketchup.active_model.get_attribute("modelData", "projectName")
+            $project_name = Sketchup.active_model.get_attribute("modelData", "projectName")
         elsif page != nil
             @scene_name = remove_spaces(page.name)
         end
@@ -82,7 +82,7 @@ class RadianceScene < ExportBase
         ## show user dialog for export options
         ud = UserDialog.new() 
         ud.addOption("project directory", $export_dir)
-        ud.addOption("project name", $scene_name)
+        ud.addOption("project name", $project_name)
         ud.addOption("weather file", $weather_file) ## added for su2ds
         ud.addOption("points file", Sketchup.active_model.get_attribute("modelData", "pointsFilePath", "")) ## added for su2ds
         ud.addOption("use present location", true) ## added for su2ds
@@ -99,7 +99,7 @@ class RadianceScene < ExportBase
         #end
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $export_dir = ud.results[0] 
-            $scene_name = ud.results[1]
+            $project_name = ud.results[1]
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
             $weather_file = ud.results[2] ## added for su2ds
@@ -131,7 +131,7 @@ class RadianceScene < ExportBase
         ## use test directory in debug mode
         if $DEBUG and  $testdir != ''
             $export_dir = $testdir
-            scene_dir = "#{$export_dir}/#{$scene_name}"
+            scene_dir = "#{$export_dir}/#{$project_name}"
             if FileTest.exists?(scene_dir)
                 system("rm -rf #{scene_dir}")
             end
@@ -147,12 +147,12 @@ class RadianceScene < ExportBase
         ## show user dialog for export options
         ud = UserDialog.new() 
         ud.addOption("project path", $export_dir)
-        ud.addOption("project name", $scene_name)
+        ud.addOption("project name", $project_name)
         ud.addOption("points layer", $points_layer)
         ud.addOption("grid spacing", $point_spacing.to_s)
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $export_dir = ud.results[0] 
-            $scene_name = ud.results[1]
+            $project_name = ud.results[1]
             $points_layer = ud.results[2]
             $point_spacing = ud.results[3].to_f
         else
@@ -178,9 +178,9 @@ class RadianceScene < ExportBase
         end
         ## create 'objects/*_faces.rad' file
         if faces_text != ''
-            faces_filename = getFilename("objects/#{$scene_name}_faces.rad")
+            faces_filename = getFilename("objects/#{$project_name}_faces.rad")
             if createFile(faces_filename, faces_text)
-                xform = "!xform objects/#{$scene_name}_faces.rad"
+                xform = "!xform objects/#{$project_name}_faces.rad"
             else
                 msg = "ERROR creating file '#{faces_filename}'"
                 uimessage(msg)
@@ -194,7 +194,7 @@ class RadianceScene < ExportBase
         #if $skyfile != ''                                      ## removed
         #    ref_text = "!xform #{$skyfile} \n" + ref_text      ## for 
         #end                                                    ## su2ds
-        ref_filename = getFilename("#{$scene_name}.rad")
+        ref_filename = getFilename("#{$project_name}.rad")
         if not createFile(ref_filename, ref_text)
             msg = "\n## ERROR: error creating file '%s'\n" % filename
             uimessage(msg)
@@ -204,13 +204,13 @@ class RadianceScene < ExportBase
     
     #def export(selected_only=0)
     def export ## selection option removed for su2ds
-        # scene_dir = "#{$export_dir}/#{$scene_name}" ## these are set when RadianceScene object is initiated; note that up to this point, 
-        #                                             ## the only way for $scene_name to have been modified from its default value is for a 
+        # scene_dir = "#{$export_dir}/#{$project_name}" ## these are set when RadianceScene object is initiated; note that up to this point, 
+        #                                             ## the only way for $project_name to have been modified from its default value is for a 
         #                                             ## Sketchup page name to have been read. I think this may be an error, because the
         #                                             ## consequence is that the directory structure created in removeExisting doesn't
         # if not confirmExportDirectory or not removeExisting(scene_dir) ## if confirmExportDirectory or removeExisting return false, do not 
                                                                          ## continue with export.
-        if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$scene_name}") # changed this to fix above problem
+        if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}") # changed this to fix above problem
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
@@ -244,21 +244,21 @@ class RadianceScene < ExportBase
         # end
         entities = Sketchup.active_model.entities
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
-        $nameContext.push($scene_name) 
+        $nameContext.push($project_name) 
         sceneref = exportByGroup(entities, Geom::Transformation.new)
         saveFilesByCL()
         $nameContext.pop()
         $materialContext.export()
         # createRifFile() removed for su2ds
         # runPreview() removed for su2ds
-        Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
+        Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
     end
     
     ## new for su2ds
     def exportPoints ## exports points file for Daysim analysis
-        if not confirmPointsExportDirectory or not removeExisting("#{$export_dir}/#{$scene_name}")
+        if not confirmPointsExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}")
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
@@ -269,11 +269,11 @@ class RadianceScene < ExportBase
         $points_group.layer = $points_layer ## puts points group on same layer as geometry used to create mesh
         $points_group.set_attribute("grid", "is_grid", true) ## marks group as containing the points mesh
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
-        $nameContext.push($scene_name) 
+        $nameContext.push($project_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
         createPointsFile($point_text)
-        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$scene_name}/#{$scene_name}.pts") ## added for su2ds; stores point file path in model
-        Sketchup.active_model.set_attribute("modelData", "projectName", $scene_name) ## added for su2ds
+        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$project_name}/#{$project_name}.pts") ## added for su2ds; stores point file path in model
+        Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         $nameContext.pop()
         writeLogFile()
     end
@@ -300,7 +300,7 @@ class RadianceScene < ExportBase
         text += "# DAYSIM HEADER FILE\n"
         text += "# created by su2ds at #{Time.now.asctime}\n"
         text += "#######################\n\n"
-        text += "project_name       #{$scene_name}\n"
+        text += "project_name       #{$project_name}\n"
         text += "project_directory  #{$export_dir}\n"
         text += "bin_directory      C:/DAYSIM/bin_windows\n" ## maybe change code to make this be specified in preferences dialog?
         text += "material_directory C:/DAYSIM/materials\n"
@@ -322,15 +322,15 @@ class RadianceScene < ExportBase
         text += "#######################\n"
         text += "# building information\n"
         text += "#######################\n"
-        text += "material_file            #{$scene_name}_material.rad\n"
-        text += "geometry_file            #{$scene_name}_geometry.rad\n"
-        text += "radiance_source_files    1,#{$scene_name}.rad\n"
+        text += "material_file            #{$project_name}_material.rad\n"
+        text += "geometry_file            #{$project_name}_geometry.rad\n"
+        text += "radiance_source_files    1,#{$project_name}.rad\n"
         text += "sensor_file              #{$points_file}\n"
         text += "shading                  0\n"
         text += "ViewPoint                0\n"
         
         ## write header file
-        name = $scene_name
+        name = $project_name
         filename = getFilename("/#{name}.hea")
         if not createFile(filename, text)
             uimessage("Error: could not create DAYSIM header file '#{filename}'")
@@ -384,17 +384,17 @@ class RadianceScene < ExportBase
     #     if $RAD == '' or $PREVIEW != true
     #         return
     #     end
-    #     dir, riffile = File.split(getFilename("%s.rif" % $scene_name))
-    #     #Dir.chdir("#{$export_dir}/#{$scene_name}")
+    #     dir, riffile = File.split(getFilename("%s.rif" % $project_name))
+    #     #Dir.chdir("#{$export_dir}/#{$project_name}")
     #     #cmd = "%s -o x11 %s" % [$RAD, riffile]
     # end
     
     def writeLogFile
         line = "###  finished: %s  ###" % Time.new()
         $log.push(line)
-        line2 = "### success: #{$export_dir}/#{$scene_name})  ###"
+        line2 = "### success: #{$export_dir}/#{$project_name})  ###"
         $log.push(line2)
-        logname = getFilename("%s.log" % $scene_name)
+        logname = getFilename("%s.log" % $project_name)
         if not createFile(logname, $log.join("\n"))
             uimessage("Error: Could not create log file '#{logname}'")
             line = "### export failed: %s  ###" % Time.new()
@@ -446,16 +446,16 @@ class RadianceScene < ExportBase
 #        text += "\n"
 #        project = remove_spaces(File.basename($export_dir))
 #        text += "PICTURE=      images/#{project}\n" 
-#        text += "OCTREE=       octrees/#{$scene_name}.oct\n"
-#        text += "AMBFILE=      ambfiles/#{$scene_name}.amb\n"
-#        text += "REPORT=       3 logfiles/#{$scene_name}.log\n"
-#        text += "scene=        #{$scene_name}.rad\n"
+#        text += "OCTREE=       octrees/#{$project_name}.oct\n"
+#        text += "AMBFILE=      ambfiles/#{$project_name}.amb\n"
+#        text += "REPORT=       3 logfiles/#{$project_name}.log\n"
+#        text += "scene=        #{$project_name}.rad\n"
 #        text += "materials=    materials.rad\n\n"
 #        text += "%s\n\n" % exportViews()
 #        text += getRifObjects
 #        text += "\n"
 #        
-#        filename = getFilename("%s.rif" % $scene_name)
+#        filename = getFilename("%s.rif" % $project_name)
 #        if not createFile(filename, text)
 #            uimessage("Error: Could not create rif file '#{filename}'")
 #        end
@@ -463,7 +463,7 @@ class RadianceScene < ExportBase
         
     # def exportViews           ## removed for su2ds, don't need view files in DAYSIM
     #     views = []
-    #     views.push(createViewFile(@model.active_view.camera, $scene_name))
+    #     views.push(createViewFile(@model.active_view.camera, $project_name))
     #     if $EXPORTALLVIEWS == true
     #         pages = @model.pages
     #         pages.each { |page|
