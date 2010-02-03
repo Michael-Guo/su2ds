@@ -267,8 +267,8 @@ class ExportBase
     end 
     
     def removeExisting(scene_dir)
-        if FileTest.exists?(scene_dir)
-            scene_name = File.basename(scene_dir)
+        if FileTest.exists?(scene_dir) ## Ruby utility; returns true if scene_dir exists
+            scene_name = File.basename(scene_dir) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
             ui_result = (UI.messagebox "Remove existing directory\n'#{scene_name}'?", MB_OKCANCEL, "Remove directory?")
             if ui_result == 1
                 uimessage('removing directories')
@@ -374,7 +374,7 @@ class ExportBase
     ## new for su2ds
     def createPointsFile(points)
         ## write points to file in a save way; if file exists merge points
-        name = $scene_name
+        name = $project_name
         #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
         filename = getFilename("/#{name}.pts")
         if FileTest.exists?(filename)
@@ -399,7 +399,7 @@ class ExportBase
         if name == nil
             name = "objects/%s.rad" % remove_spaces($nameContext[-1])
         end
-        return "#{$export_dir}/#{$scene_name}/#{name}"
+        return "#{$export_dir}/#{$project_name}/#{name}"
     end
     
     def getMaterial(entity)
@@ -443,9 +443,9 @@ class ExportBase
     def getXform(filename, trans)
         if $nameContext.length <= 2     #XXX ugly hack
             ## for main scene file
-            path = "%s/%s/" % [$export_dir, $scene_name]
+            path = "%s/%s/" % [$export_dir, $project_name]
         else
-            path = "%s/%s/objects/" % [$export_dir, $scene_name]
+            path = "%s/%s/objects/" % [$export_dir, $project_name]
         end 
         filename.sub!(path, '')
         suffix = filename[filename.length-4,4].downcase()
