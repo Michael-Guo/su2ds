@@ -10,7 +10,7 @@ class ExportBase
     end
    
     def clearDirectory(scene_dir)
-        points_file = []
+        #points_file = [] ## added for su2ds
         uimessage("clearing directory '#{scene_dir}'")
         Dir.foreach(scene_dir) { |f|  # Dir.foreach calls block once for each entry in argument directory, passing name of entry each time
             fpath = File.join(scene_dir, f)
@@ -407,7 +407,7 @@ class ExportBase
         points.sort!
         text = points.join("\n")
         if not createFile(filename, text)
-            uimessage("Error: Could not create numeric file '#{filename}'")
+            uimessage("Error: Could not create points file '#{filename}'")
         else
             uimessage("Created field '%s' (%d points)" % [filename, points.length])
         end
