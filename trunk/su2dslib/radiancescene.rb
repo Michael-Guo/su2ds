@@ -84,7 +84,7 @@ class RadianceScene < ExportBase
         ud.addOption("project directory", $export_dir)
         ud.addOption("project name", $project_name)
         ud.addOption("weather file", $weather_file) ## added for su2ds
-        ud.addOption("points file", Sketchup.active_model.get_attribute("modelData", "pointsFilePath", "")) ## added for su2ds
+        #ud.addOption("points file", Sketchup.active_model.get_attribute("modelData", "pointsFilePath", "")) ## added for su2ds
         ud.addOption("use present location", true) ## added for su2ds
         #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
         #ud.addOption("all views", $EXPORTALLVIEWS) ## removed for su2ds
@@ -103,8 +103,8 @@ class RadianceScene < ExportBase
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
             $weather_file = ud.results[2] ## added for su2ds
-            $points_file = ud.results[3] ## added for su2ds
-            if not ud.results[4] ## added for su2ds; calls location dialogue if user says not to use present location
+            #$points_file = ud.results[3] ## added for su2ds
+            if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
                 begin
                     ld = LocationDialog.new()
                     ld.show()
@@ -116,7 +116,7 @@ class RadianceScene < ExportBase
             #$MODE = ud.results[4]
             #$MODE = ud.results[2]
             #$TRIANGULATE = ud.results[5]
-            $TRIANGULATE = ud.results[5]
+            $TRIANGULATE = ud.results[4]
             # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
             #     $MAKEGLOBAL = ud.results[5]
             # end
@@ -143,26 +143,26 @@ class RadianceScene < ExportBase
     end
     
     ## new for su2ds
-    def confirmPointsExportDirectory
+    def confirmPointsExportOptions
         ## show user dialog for export options
         ud = UserDialog.new() 
-        ud.addOption("project path", $export_dir)
-        ud.addOption("project name", $project_name)
+        #ud.addOption("project path", $export_dir)
+        #ud.addOption("project name", $project_name)
         ud.addOption("points layer", $points_layer)
         ud.addOption("grid spacing", $point_spacing.to_s)
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-            $export_dir = ud.results[0] 
-            $project_name = ud.results[1]
-            $points_layer = ud.results[2]
-            $point_spacing = ud.results[3].to_f
+            #$export_dir = ud.results[0] 
+            #$project_name = ud.results[1]
+            $points_layer = ud.results[0]
+            $point_spacing = ud.results[1].to_f
         else
             uimessage('export canceled')
             return false
         end
         
-        if $export_dir[-1,1] == '/'
-            $export_dir = $export_dir[0,$export_dir.length-1]
-        end
+        # if $export_dir[-1,1] == '/'
+        #             $export_dir = $export_dir[0,$export_dir.length-1]
+        #         end
         
         return true
     end
@@ -210,6 +210,21 @@ class RadianceScene < ExportBase
         #                                             ## consequence is that the directory structure created in removeExisting doesn't
         # if not confirmExportDirectory or not removeExisting(scene_dir) ## if confirmExportDirectory or removeExisting return false, do not 
                                                                          ## continue with export.
+        
+        # check if points file has been written ## new for su2ds
+        point_text = Sketchup.active_model.get_attribute("modelData","pointsText")
+        if point_text == nil
+            message = ""
+            message += "You have not created a sensor point mesh for this project.\n"
+            message += "DAYSIM requires a sensor point mesh for its calculations.\n"
+            message += "Would you like to proceed?"
+            ui_result = (UI.messagebox message, MB_YESNO, "su2ds")
+            if ui_result == 7
+                return
+            end
+            point_text = []
+        end
+        
         if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}") # changed this to fix above problem
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
@@ -251,18 +266,21 @@ class RadianceScene < ExportBase
         $materialContext.export()
         # createRifFile() removed for su2ds
         # runPreview() removed for su2ds
+        createPointsFile(point_text) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
     end
     
     ## new for su2ds
-    def exportPoints ## exports points file for Daysim analysis
-        if not confirmPointsExportDirectory or not removeExistingPoints("#{$export_dir}/#{$project_name}/#{$project_name}.pts")
-            return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
+    def exportPoints ## creates points mesh for Daysim analysis
+        #if not confirmPointsExportOptions or not removeExistingPoints("#{$export_dir}/#{$project_name}/#{$project_name}.pts")
+        if not confirmPointsExportOptions
+            return
         end
                    
         entities = Sketchup.active_model.entities
+        removePointsFromModel(entities) ## new for su2ds; removes existing point entities from model
         pointsEntities = getPointsEntities(entities)
         $points_group = entities.add_group ## new for su2ds; adds group to which points mesh will be added
         $points_group.layer = $points_layer ## puts points group on same layer as geometry used to create mesh
@@ -270,11 +288,12 @@ class RadianceScene < ExportBase
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($project_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
-        createPointsFile($point_text)
-        Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$project_name}/#{$project_name}.pts") ## added for su2ds; stores point file path in model
+        #createPointsFile($point_text) ## added for su2ds
+        Sketchup.active_model.set_attribute("modelData", "pointsText", $point_text) ## added for su2ds
+        #Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$project_name}/#{$project_name}.pts") ## added for su2ds; stores point file path in model
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         $nameContext.pop()
-        writeLogFile()
+        #writeLogFile()  ## removed for su2ds
     end
     
     ## new for su2ds
@@ -339,26 +358,26 @@ class RadianceScene < ExportBase
         
     end
     
-    def removeExistingPoints(points_file)
-        if FileTest.exists?(points_file) ## Ruby utility; returns true if scene_dir exists
-            file_name = File.basename(points_file) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
-            ui_result = (UI.messagebox "Remove existing points file\n'#{file_name}'?", MB_OKCANCEL, "Remove points file?")
-            if ui_result == 1
-                # give status message
-                uimessage('removing points file')
-                # delete points file
-                File.delete(points_file)
-                uimessage("deleted file '#{points_file}'", 3)
-            else
-                uimessage('export canceled')
-                return false
-            end
-        end
-        # remove point entities from model
-        entities = Sketchup.active_model.entities
-        removePointsFromModel(entities) 
-        return true
-    end
+    # def removeExistingPoints(points_file)
+    #     if FileTest.exists?(points_file) ## Ruby utility; returns true if scene_dir exists
+    #         file_name = File.basename(points_file) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
+    #         ui_result = (UI.messagebox "Remove existing points file\n'#{file_name}'?", MB_OKCANCEL, "Remove points file?")
+    #         if ui_result == 1
+    #             # give status message
+    #             uimessage('removing points file')
+    #             # delete points file
+    #             File.delete(points_file)
+    #             uimessage("deleted file '#{points_file}'", 3)
+    #         else
+    #             uimessage('export canceled')
+    #             return false
+    #         end
+    #     end
+    #     # remove point entities from model
+    #     entities = Sketchup.active_model.entities
+    #     removePointsFromModel(entities) 
+    #     return true
+    # end
     
     def removePointsFromModel(entities)  
         entities.each { |e|
@@ -373,7 +392,7 @@ class RadianceScene < ExportBase
             end
         }
     end
-    
+
     
     def saveFilesByCL
         if $MODE == 'by layer'
