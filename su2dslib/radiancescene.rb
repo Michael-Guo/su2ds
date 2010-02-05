@@ -343,7 +343,8 @@ class RadianceScene < ExportBase
         text += "material_file            #{$project_name}_material.rad\n"
         text += "geometry_file            #{$project_name}_geometry.rad\n"
         text += "radiance_source_files    1,#{$project_name}.rad\n"
-        text += "sensor_file              #{$points_file}\n"
+        #text += "sensor_file              #{$points_file}\n"
+        text += "sensor_file              #{$project_name}.pts\n"
         text += "shading                  0\n"
         text += "ViewPoint                0\n"
         
