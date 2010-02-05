@@ -4,12 +4,11 @@
 
 Things that need to be dealt with:
 
-  # should probably change all instances of $scene_name to $project_name; less confusing
   # need to figure out how $nameContext works and what exactly it does
-  # add DAYSIM header file writing
   # add dialog that allows user to select layers for export?
   # add functionality to allow for the import of DAYSIM simulation results
   # add temporal map functionality?
   # improve the menus; add file chooser capability for paths, etc
   # some sort of materials functionality -- see DAYSIM tutorial (apparently there is a Sketchup materials file that can be downloaded; there is also some comment on the issue of material mismatches between the front and back sides of a face)
   # add something to preferences dialog to specify DAYSIM bin directory and material directory
+  # make it so that su2rad and su2ds can live together in plugins directory (which currently doesn't seem to be the case)
