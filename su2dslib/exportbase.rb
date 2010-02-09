@@ -220,6 +220,7 @@ class ExportBase
     
     ## new for su2ds
     def exportPointsByGroup(entity_list, parenttrans, instance=false)   
+        puts __FILE__
         references = []
         faces = []
         entity_list.each { |e| 
