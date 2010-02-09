@@ -14,7 +14,7 @@ class RadianceScene < ExportBase
         $export_dir = Dir.pwd()
         $weather_file = '' ## added for su2ds -- TODO is adding a better method for selecting this path
         $points_layer = "points" ## added for su2ds
-        $point_spacing = 0.25  ## added for su2ds. Note: this is in export units, not Sketchup units
+        $point_spacing = 0.5  ## added for su2ds. Note: this is in export units, not Sketchup units
         $point_text = [] ## added for su2ds
         setExportDirectory() ## sets $project_name and $export_dir variables
         
@@ -102,7 +102,11 @@ class RadianceScene < ExportBase
             $project_name = ud.results[1]
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
-            $weather_file = ud.results[2] ## added for su2ds
+            #$weather_file = ud.results[2] ## added for su2ds
+            if not confirmWeatherFile(ud.results[2])
+                uimessage('export canceled')
+                return false
+            end
             #$points_file = ud.results[3] ## added for su2ds
             if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
                 begin
@@ -140,6 +144,88 @@ class RadianceScene < ExportBase
             $export_dir = $export_dir[0,$export_dir.length-1]
         end
         return true
+    end
+    
+    ## new for su2ds
+    def confirmWeatherFile(path)
+        if path[-3,3] == "wea" ## user has selected .wea file; proceed
+            $weather_file = path
+            return true
+        elsif path[-3,3] == "epw" ## user has selected .epw; prompt to convert, pick another, or cancel
+            message = "You have selected a file in EnergyPlus Weather (.epw)\n"
+            message += "format. DAYSIM requires .wea format. Would you like \n"
+            message += "to convert this file?\n\n"
+            message += "Click 'yes' to convert, 'no' to choose another weather\n"
+            message += "file, or 'cancel' to abort header file creation"
+            result = UI.messagebox(message, MB_YESNOCANCEL)
+            if result == 6 ## user wants to convert file
+                if convertEPW(path)
+                    $weather_file = "#{path[0..-5]}.wea"
+                    uimessage("Weather file #{path} converted.")
+                    return true
+                else
+                    return false
+                end
+            elsif result == 7 ## user wants to choose another file
+                wud = UserDialog.new()
+                wud.addOption("weather file path", $weather_file)
+                if wud.show("select weather file")
+                    path = wud.results[0]
+                else
+                    uimessage("export cancelled by user")
+                    return false
+                end
+                if confirmWeatherFile(path)
+                    return true
+                else
+                    return false
+                end
+            else ## user cancels
+                return false
+            end
+        else ## user has selected file that is neither .epw or .wea. Prompt to select another or cancel
+            message = "You have selected a file that is in neither .wea \n"
+            message += "or .epw format. Would you like to choose another, \n"
+            message += "or abort header file creation?\n\n"
+            message += "Click 'ok' to choose another file, or 'cancel' to abort\n"
+            message += "header file creation?"
+            result = UI.messagebox(message, MB_OKCANCEL)
+            if result == 1 ## user elects to choose another weather file
+                wud = UserDialog.new()
+                wud.addOption("weather file path", $weather_file)
+                if wud.show("select weather file")
+                    path = wud.results[0]
+                else
+                    uimessage("export cancelled by user")
+                    return false
+                end
+                if confirmWeatherFile(path)
+                    return true
+                else
+                    return false
+                end
+            else ## user cancels
+                return false
+            end
+        end
+    end
+                
+    ## new for su2ds
+    ## converts .epw files to .wea files using epw2wea, which is located in su2dslib
+    def convertEPW(path)
+        begin
+            out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{path[0..-5]}.wea`
+            if $? == 0
+                return true
+            else
+                uimessage("export failed; exception #{$?}")
+                return false
+            end
+        rescue => e
+            msg = "%s\n\n%s" % [$!.message, e.backtrace.join("\n")]
+            UI.messagebox(msg)
+            return false
+        end
     end
     
     ## new for su2ds

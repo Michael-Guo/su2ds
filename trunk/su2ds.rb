@@ -206,5 +206,3 @@ else
     end
     file_loaded("su2ds.rb")
 end
-
-
