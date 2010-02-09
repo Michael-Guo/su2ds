@@ -1,5 +1,6 @@
 require "su2dslib/exportbase.rb"
 require "su2dslib/location.rb"  ## added for su2ds
+require 'fileutils'
 
 class RadianceScene < ExportBase
 
@@ -149,38 +150,55 @@ class RadianceScene < ExportBase
     ## new for su2ds
     def confirmWeatherFile(path)
         if path[-3,3] == "wea" ## user has selected .wea file; proceed
-            $weather_file = path
-            return true
+            if File.exists?(path)
+                name = File.basename(path)
+                newpath = getFilename("#{name}")
+                FileUtils.cp(path, newpath)
+                #File.syscopy(path, newpath)
+                uimessage("weather file #{path} copied to #{newpath}")
+                $weather_file = name
+                return true
+            else
+                msg = "Export cancelled. Specified weather file does not exist"
+                UI.messagebox(msg)
+                return false
+            end                
         elsif path[-3,3] == "epw" ## user has selected .epw; prompt to convert, pick another, or cancel
-            message = "You have selected a file in EnergyPlus Weather (.epw)\n"
-            message += "format. DAYSIM requires .wea format. Would you like \n"
-            message += "to convert this file?\n\n"
-            message += "Click 'yes' to convert, 'no' to choose another weather\n"
-            message += "file, or 'cancel' to abort header file creation"
-            result = UI.messagebox(message, MB_YESNOCANCEL)
-            if result == 6 ## user wants to convert file
-                if convertEPW(path)
-                    $weather_file = "#{path[0..-5]}.wea"
-                    uimessage("Weather file #{path} converted.")
-                    return true
-                else
+            if File.exists?(path)
+                message = "You have selected a file in EnergyPlus Weather (.epw)\n"
+                message += "format. DAYSIM requires .wea format. Would you like \n"
+                message += "to convert this file?\n\n"
+                message += "Click 'yes' to convert, 'no' to choose another weather\n"
+                message += "file, or 'cancel' to abort header file creation"
+                result = UI.messagebox(message, MB_YESNOCANCEL)
+                if result == 6 ## user wants to convert file
+                    if convertEPW(path)
+                        $weather_file = "#{File.basename(path)[0..-5]}.wea"
+                        uimessage("Weather file #{path} converted.")
+                        return true
+                    else
+                        return false
+                    end
+                elsif result == 7 ## user wants to choose another file
+                    wud = UserDialog.new()
+                    wud.addOption("weather file path", $weather_file)
+                    if wud.show("select weather file")
+                        path = wud.results[0]
+                    else
+                        uimessage("export cancelled by user")
+                        return false
+                    end
+                    if confirmWeatherFile(path)
+                        return true
+                    else
+                        return false
+                    end
+                else ## user cancels
                     return false
                 end
-            elsif result == 7 ## user wants to choose another file
-                wud = UserDialog.new()
-                wud.addOption("weather file path", $weather_file)
-                if wud.show("select weather file")
-                    path = wud.results[0]
-                else
-                    uimessage("export cancelled by user")
-                    return false
-                end
-                if confirmWeatherFile(path)
-                    return true
-                else
-                    return false
-                end
-            else ## user cancels
+            else
+                msg = "export cancelled -- specified weather file does\n not exist"
+                UI.messagebox(msg)
                 return false
             end
         else ## user has selected file that is neither .epw or .wea. Prompt to select another or cancel
@@ -214,7 +232,9 @@ class RadianceScene < ExportBase
     ## converts .epw files to .wea files using epw2wea, which is located in su2dslib
     def convertEPW(path)
         begin
-            out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{path[0..-5]}.wea`
+            name = File.basename(path)
+            newpath = getFilename("#{name}")
+            out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{newpath[0..-5]}.wea`
             if $? == 0
                 return true
             else
@@ -436,7 +456,7 @@ class RadianceScene < ExportBase
         
         ## write header file
         name = $project_name
-        filename = getFilename("/#{name}.hea")
+        filename = getFilename("#{name}.hea")
         if not createFile(filename, text)
             uimessage("Error: could not create DAYSIM header file '#{filename}'")
         else
