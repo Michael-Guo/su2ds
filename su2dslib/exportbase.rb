@@ -395,7 +395,7 @@ class ExportBase
         ## write points to file in a save way; if file exists merge points
         name = $project_name
         #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
-        filename = getFilename("/#{name}.pts")
+        filename = getFilename("#{name}.pts")
         if FileTest.exists?(filename)
             uimessage("updating field '%s'" % filename)
             f = File.new(filename)
