@@ -1,6 +1,6 @@
 require "su2dslib/exportbase.rb"
 require "su2dslib/location.rb"  ## added for su2ds
-require 'fileutils'
+require "su2dslib/fileutils.rb" ## added for su2ds
 
 class RadianceScene < ExportBase
 
@@ -101,6 +101,10 @@ class RadianceScene < ExportBase
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $export_dir = ud.results[0] 
             $project_name = ud.results[1]
+            if not removeExisting("#{$export_dir}/#{$project_name}")    ## added for su2ds;
+                return false                                            ## moved here so that directory is cleared before
+            end                                                         ## weather file is written
+            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go                                                         
             #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
             #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
             #$weather_file = ud.results[2] ## added for su2ds
@@ -159,7 +163,7 @@ class RadianceScene < ExportBase
                 $weather_file = name
                 return true
             else
-                msg = "Export cancelled. Specified weather file does not exist"
+                msg = "Export cancelled. Specified weather file does not exist."
                 UI.messagebox(msg)
                 return false
             end                
@@ -197,7 +201,7 @@ class RadianceScene < ExportBase
                     return false
                 end
             else
-                msg = "export cancelled -- specified weather file does\n not exist"
+                msg = "Export cancelled. Specified weather file does not exist."
                 UI.messagebox(msg)
                 return false
             end
@@ -331,7 +335,8 @@ class RadianceScene < ExportBase
             point_text = []
         end
         
-        if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}") # changed this to fix above problem
+        #if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}") # changed this to fix above problem
+        if not confirmExportDirectory
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
@@ -432,27 +437,33 @@ class RadianceScene < ExportBase
         text += "#######################\n"
         text += "# site information\n"
         text += "#######################\n"
-        text += "place                    #{s['City']}\n"
-        text += "latitude                 #{s['Latitude']}\n"
-        text += "longitude                #{s['Longitude']}\n"
-        text += "time_zone                #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
-        text += "site_elevation           #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
-        text += "scene_rotation_angle     #{s['NorthAngle']}\n"
-        text += "time_step                60\n"
-        text += "wea_data_short_file      #{$weather_file}\n"
-        text += "lower_direct_threshold   2\n"
-        text += "lower_diffuse_threshold  2\n"
-        text += "output_units             2\n\n"
+        text += "place                     #{s['City']}\n"
+        text += "latitude                  #{s['Latitude']}\n"
+        text += "longitude                 #{s['Longitude']}\n"
+        text += "time_zone                 #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
+        text += "site_elevation            #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
+        text += "groud_reflectance         0.2\n"
+        text += "wea_data_file             #{$weather_file}\n"
+        text += "wea_data_file_units       1\n"
+        text += "first_weekday             1\n"
+        text += "time_step                 60\n"
+        text += "wea_data_short_file       #{$weather_file}\n"
+        text += "wea_data_short_file_units 1\n"
+        text += "lower_direct_threshold    2\n"
+        text += "lower_diffuse_threshold   2\n"
+        text += "output_units              2\n\n"
         text += "#######################\n"
         text += "# building information\n"
         text += "#######################\n"
-        text += "material_file            #{$project_name}_material.rad\n"
-        text += "geometry_file            #{$project_name}_geometry.rad\n"
-        text += "radiance_source_files    1,#{$project_name}.rad\n"
-        #text += "sensor_file              #{$points_file}\n"
-        text += "sensor_file              #{$project_name}.pts\n"
-        text += "shading                  0\n"
-        text += "ViewPoint                0\n"
+        text += "material_file             #{$project_name}_material.rad\n"
+        text += "geometry_file             #{$project_name}_geometry.rad\n"
+        text += "scene_rotation_angle      #{s['NorthAngle']}\n"
+        text += "sensor_file               #{$project_name}.pts\n"
+        text += "radiance_source_files     1,#{$project_name}.rad\n"
+        #text += "sensor_file               #{$points_file}\n"
+        text += "shading                   1\n"  ## "1" specifies static shading geometry
+        text += "static_system             res/#{$project_name}.dc res/#{$project_name}.ill\n" ## note this line not necessary if previous line = 0
+        text += "ViewPoint                 0\n"
         
         ## write header file
         name = $project_name

@@ -286,7 +286,7 @@ class ExportBase
             ui_result = (UI.messagebox "Remove existing DAYSIM project files?", MB_OKCANCEL, "Remove project files?")
             if ui_result == 1
                 uimessage('removing DAYSIM project files')
-                clearDirectory(project_dir) ## deletes old directory, returns text from any points files that were cleared
+                clearDirectory(project_dir)
                 #prepareSceneDir(project_dir) ## creates new Radiance directory structure, w/ "octrees," "images," "logfiles," 
                                            ## and "ambfiles" folders. Removed for su2ds. 
                 # if points_file[0] != nil                        ## added for su2ds
