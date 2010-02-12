@@ -12,3 +12,4 @@ Things that need to be dealt with:
   # some sort of materials functionality -- see DAYSIM tutorial (apparently there is a Sketchup materials file that can be downloaded; there is also some comment on the issue of material mismatches between the front and back sides of a face)
   # add something to preferences dialog to specify DAYSIM bin directory and material directory
   # make it so that su2rad and su2ds can live together in plugins directory (which currently doesn't seem to be the case)
+  # there's a whole bunch of stuff in the RadianceComponent class that can probably be cleared out (getXform, copyIESLuminaire, etc etc)
