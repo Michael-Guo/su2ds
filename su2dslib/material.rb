@@ -108,47 +108,50 @@ class MaterialContext < ExportBase
             filename = getFilename("materials.rad")
         end
         defined = {}
-        text = "## materials.rad\n"
-        text += getMaterialDescription(nil)
-        if $MODE == 'by layer'
-            ## 'by layer' creates alias to default material if no
-            ## definition is provided in library (TODO)
-            $byLayer.each_pair { |lname,lines|
-                if lines.length == 0
-                    ## empty layer
-                    next
-                end
-                if $RADPRIMITIVES.has_key?(lname)
-                    lname = "layer_" + lname
-                end
-                defined[lname] = getMaterialDescription(lname)
-            }
-        else
-            @materialHash.each_pair { |mat,mname|
-                defined[mname] = getMaterialDescription(mat)
-            }
-        end
+        #text = "## materials.rad\n"                    ## modified
+        #text += getMaterialDescription(nil)            ## for
+        $materialText = "## materials\n"            ## su2ds
+        $materialText += getMaterialDescription(nil)    ##
+        # if $MODE == 'by layer'                                        ## removed for su2ds
+        #     ## 'by layer' creates alias to default material if no     ## 'by layer' export no longer available
+        #     ## definition is provided in library (TODO)
+        #     $byLayer.each_pair { |lname,lines|
+        #         if lines.length == 0
+        #             ## empty layer
+        #             next
+        #         end
+        #         if $RADPRIMITIVES.has_key?(lname)
+        #             lname = "layer_" + lname
+        #         end
+        #         defined[lname] = getMaterialDescription(lname)
+        #     }
+        # else
+        @materialHash.each_pair { |mat,mname|
+            defined[mname] = getMaterialDescription(mat)
+        }
+        # end
         marray = defined.sort()
         marray.each { |a|
-            text += a[1]
+            #text += a[1]           ## modified for su2ds; stores material text in global variable to be written
+            $materialText += a[1]   ## elsewhere
         }
-        if $MODE != 'by group'
-            ## check against list of files in 'objects' directory
-            reg_obj = Regexp.new('objects')
-            $createdFiles.each_pair { |fpath, value|
-                m = reg_obj.match(fpath)
-                if m
-                    ofilename = File.basename(fpath, '.rad')
-                    if not defined.has_key?(ofilename)
-                        uimessage("WARNING: material #{ofilename} undefined; adding alias")
-                        text += getMaterialDescription(ofilename)
-                    end
-                end
-            }
-        end
-        if not createFile(filename, text)
-            uimessage("ERROR creating material file '#{filename}'")
-        end
+        # if $MODE != 'by group'                                        ## removed for sud2ds
+        #     ## check against list of files in 'objects' directory     ## 'by group' export mode removeds
+        #     reg_obj = Regexp.new('objects')
+        #     $createdFiles.each_pair { |fpath, value|
+        #         m = reg_obj.match(fpath)
+        #         if m
+        #             ofilename = File.basename(fpath, '.rad')
+        #             if not defined.has_key?(ofilename)
+        #                 uimessage("WARNING: material #{ofilename} undefined; adding alias")
+        #                 text += getMaterialDescription(ofilename)
+        #             end
+        #         end
+        #     }
+        # end
+        # if not createFile(filename, text)                             ## removed for su2ds
+        #     uimessage("ERROR creating material file '#{filename}'")   ## file written elsewhere
+        # end
         #$texturewriter.write_all
         #$texturewriter = nil
     end

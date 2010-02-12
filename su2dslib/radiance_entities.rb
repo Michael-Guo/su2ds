@@ -245,7 +245,7 @@ class RadianceComponent < ExportBase
         #     end
         # end
         
-        skip_export = false
+        #skip_export = false
         # if $MAKEGLOBAL == false                                   ## modified for su2ds; all exports will be in
         #     filename = getFilename("objects/#{defname}.rad")      ## global coords
         #     if $createdFiles[filename] == 1
@@ -280,8 +280,8 @@ class RadianceComponent < ExportBase
         elsif @replacement != ''
             ## any other replacement file
             ref = copyReplFile(filename, parenttrans)
-        elsif skip_export == true 
-            ref = getXform(filename, @entity.transformation)
+        # elsif skip_export == true     ## removed for su2ds
+        #     ref = getXform(filename, @entity.transformation)
         else
             oldglobal = $globaltrans
             $globaltrans *= @entity.transformation
@@ -469,7 +469,7 @@ class RadiancePolygon < ExportBase
         return text       
     end
 
-    def getPolygon(points,count, trans)
+    def getPolygon(points, count, trans)
         ## store text for byColor/byLayer export
         worldpoints = points.collect { |p| p.transform($globaltrans) }
         matname = getMaterialName(@material)
@@ -478,31 +478,31 @@ class RadiancePolygon < ExportBase
         worldpoints.each { |wp|
             poly += "    %f  %f  %f\n" % [wp.x*$UNIT,wp.y*$UNIT,wp.z*$UNIT]
         }
-        if not $byColor.has_key?(matname)
-            $byColor[matname] = []
+        if not $geometryHash.has_key?(matname)
+            $geometryHash[matname] = []
             uimessage("new material for 'by Color': '#{matname}'")
         end
-        $byColor[matname].push(poly)
+        $geometryHash[matname].push(poly)
         
-        layername = remove_spaces(@layer.name)
-        if $RADPRIMITIVES.has_key?(layername)
-            layername = "layer_" + layername
-        end
-        if not $byLayer.has_key?(layername)
-            $byLayer[layername] = []
-        end
-        $byLayer[layername].push(poly.sub(matname, layername))
+        # layername = remove_spaces(@layer.name)
+        # if $RADPRIMITIVES.has_key?(layername)
+        #     layername = "layer_" + layername
+        # end
+        # if not $byLayer.has_key?(layername)
+        #     $byLayer[layername] = []
+        # end
+        # $byLayer[layername].push(poly.sub(matname, layername))
             
-        ## return text for byGroup export
-        text = "\n%s polygon t_%d_%d\n" % [getMaterialName(@material), @index, count]
-        text += "0\n0\n%d\n" % [points.length*3]
-        points.each { |p|
-            if trans != nil
-                p.transform!(trans)
-            end
-            text += "    %f  %f  %f\n" % [p.x*$UNIT,p.y*$UNIT,p.z*$UNIT]
-        }
-        return text
+        ## return text for byGroup export       ## removed for su2ds; "by group" mode removed
+        # text = "\n%s polygon t_%d_%d\n" % [getMaterialName(@material), @index, count]
+        # text += "0\n0\n%d\n" % [points.length*3]
+        # points.each { |p|
+        #     if trans != nil
+        #         p.transform!(trans)
+        #     end
+        #     text += "    %f  %f  %f\n" % [p.x*$UNIT,p.y*$UNIT,p.z*$UNIT]
+        # }
+        # return text
     end
 
     # def isNumeric                                     ## removed for su2ds

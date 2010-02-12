@@ -26,6 +26,7 @@ class RadianceScene < ExportBase
     def initGlobals
         $materialNames = {}
         $materialDescriptions = {}
+        $materialText = ""  ## added for su2ds
         $usedMaterials = {}
         $materialContext = MaterialContext.new()
         $nameContext = []
@@ -41,11 +42,11 @@ class RadianceScene < ExportBase
     end
     
     def initGlobalHashes
-        $byColor = {}
-        $byLayer = {}
+        $geometryHash = {}
+        #$byLayer = {}  ## removed for su2ds, along with entire 'by layer' export mode
         $visibleLayers = {}
         @model.layers.each { |l|  ## @model set to Sketchup.active_model in initialize method
-            $byLayer[remove_spaces(l.name)] = [] ## populates $byLayer hash with pairs consisting of each layer's name and an empty array
+            #$byLayer[remove_spaces(l.name)] = [] ## populates $byLayer hash with pairs consisting of each layer's name and an empty array; removed for su2ds
             if l.visible?
                 $visibleLayers[l] = 1 ## puts each visible layer in $visibleLayers hash with a corresponding "1"
             end
@@ -277,40 +278,42 @@ class RadianceScene < ExportBase
         return true
     end
     
-    def createMainScene(references, faces_text, parenttrans=nil)
-        ## top level scene split in references (*.rad) and faces ('objects/*_faces.rad')
-        if $MODE != 'by group'
-            ## start with replacement files for components
-            ref_text = $components.join("\n")
-            ref_text += "\n"
-        else
-            ref_text = ""
-        end
-        ## create 'objects/*_faces.rad' file
-        if faces_text != ''
-            faces_filename = getFilename("objects/#{$project_name}_faces.rad")
-            if createFile(faces_filename, faces_text)
-                xform = "!xform objects/#{$project_name}_faces.rad"
-            else
-                msg = "ERROR creating file '#{faces_filename}'"
-                uimessage(msg)
-                xform = "## " + msg
-            end
-            references.push(xform)
-        end
-        ref_text += references.join("\n")
-        ## add materials and sky at top of file
-        ref_text = "!xform ./materials.rad\n" + ref_text
-        #if $skyfile != ''                                      ## removed
-        #    ref_text = "!xform #{$skyfile} \n" + ref_text      ## for 
-        #end                                                    ## su2ds
-        ref_filename = getFilename("#{$project_name}.rad")
-        if not createFile(ref_filename, ref_text)
-            msg = "\n## ERROR: error creating file '%s'\n" % filename
-            uimessage(msg)
-            return msg
-        end
-    end
+    ##def writeGeometryFiles(references, faces_text, parenttrans=nil)       ## REMOVED FOR SU2DS
+    # def writeGeometryFiles(references) ## modified for su2ds, because last two arguments will always be nil
+    #     ## top level scene split in references (*.rad) and faces ('objects/*_faces.rad')
+    #     # if $MODE != 'by group'                                        ## 'by group' export mode
+    #     #             ## start with replacement files for components    ## removed for su2ds
+    #     #             ref_text = $components.join("\n")
+    #     #             ref_text += "\n"
+    #     #         else
+    #     #    ref_text = ""
+    #     #end
+    #     ref_text = ""
+    #     ## create 'objects/*_faces.rad' file        ## removed for su2ds; not necessary for 'by Color' export
+    #     # if faces_text != ''   
+    #     #     faces_filename = getFilename("objects/#{$project_name}_faces.rad")
+    #     #     if createFile(faces_filename, faces_text)
+    #     #         xform = "!xform objects/#{$project_name}_faces.rad"
+    #     #     else
+    #     #         msg = "ERROR creating file '#{faces_filename}'"
+    #     #         uimessage(msg)
+    #     #         xform = "## " + msg
+    #     #     end
+    #     #     references.push(xform)
+    #     # end
+    #     ref_text += references.join("\n")
+    #     ## add materials and sky at top of file
+    #     ref_text = "!xform ./materials.rad\n" + ref_text
+    #     #if $skyfile != ''                                      ## removed
+    #     #    ref_text = "!xform #{$skyfile} \n" + ref_text      ## for 
+    #     #end                                                    ## su2ds
+    #     ref_filename = getFilename("#{$project_name}.rad")
+    #     if not createFile(ref_filename, ref_text)
+    #         msg = "\n## ERROR: error creating file '%s'\n" % filename
+    #         uimessage(msg)
+    #         return msg
+    #     end
+    # end
     
     #def export(selected_only=0)
     def export ## selection option removed for su2ds
@@ -371,13 +374,14 @@ class RadianceScene < ExportBase
         entities = Sketchup.active_model.entities
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($project_name) 
-        sceneref = exportByGroup(entities, Geom::Transformation.new)
-        saveFilesByCL()
+        #sceneref = exportByGroup(entities, Geom::Transformation.new)
+        exportByGroup(entities, Geom::Transformation.new) ## modified for su2ds
+        $materialContext.export() ## moved before $nameContext.pop for su2ds
+        writeRadianceFile()
+        createPointsFile(point_text) ## added for su2ds
         $nameContext.pop()
-        $materialContext.export()
         # createRifFile() removed for su2ds
         # runPreview() removed for su2ds
-        createPointsFile(point_text) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
@@ -512,28 +516,42 @@ class RadianceScene < ExportBase
     end
 
     
-    def saveFilesByCL
-        if $MODE == 'by layer'
-            hash = $byLayer
-        elsif $MODE == 'by color'
-            hash = $byColor
-        else
-            return
-        end
+    def writeRadianceFile
+        # if $MODE == 'by layer'        ## removed for su2ds; by Color only mode for this export type
+        #     hash = $byLayer
+        # elsif $MODE == 'by color'
+        #     hash = $byColor
+        # else
+        #     return
+        # end
+        hash = $geometryHash
         references = []
-        hash.each_pair { |name,lines|
+        # hash.each_pair { |name,lines|                         ## modified for su2ds
+        #     if lines.length == 0
+        #         next
+        #     end
+        #     name = remove_spaces(name)
+        #     filename = getFilename("objects/#{name}.rad")
+        #     if not createFile(filename, lines.join("\n"))
+        #         uimessage("Error: could not create file '#{filename}'")
+        #     else
+        #         references.push("!xform objects/#{name}.rad")
+        #     end
+        # }
+        text = $materialText
+        text += "\n## geometry\n"
+        hash.each_pair { |name, lines|
             if lines.length == 0
                 next
             end
-            name = remove_spaces(name)
-            filename = getFilename("objects/#{name}.rad")
-            if not createFile(filename, lines.join("\n"))
-                uimessage("Error: could not create file '#{filename}'")
-            else
-                references.push("!xform objects/#{name}.rad")
-            end
+            text += lines.join("\n")   
         }
-        createMainScene(references, '')
+        filename = getFilename("#{$project_name}.rad")
+        if not createFile(filename, text)
+            uimessage("Error: could not create file '#{filename}'")
+        end
+        #writeGeometryFiles(references, '')
+        #writeGeometryFiles(references) ## modified for su2ds (and then removed)
     end
     
     # def runPreview    ## removed for su2ds
