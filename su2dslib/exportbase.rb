@@ -10,7 +10,6 @@ class ExportBase
     end
    
     def clearDirectory(scene_dir)
-        #points_file = [] ## added for su2ds
         uimessage("clearing directory '#{scene_dir}'")
         Dir.foreach(scene_dir) { |f|  # Dir.foreach calls block once for each entry in argument directory, passing name of entry each time
             fpath = File.join(scene_dir, f)
@@ -27,20 +26,12 @@ class ExportBase
                     uimessage("directory '#{fpath}' not empty")
                 end
             elsif FileTest.file?(fpath) == true
-                # if f == File.basename(Sketchup.active_model.get_attribute("modelData","pointsFilePath","")) ##
-                #     pf = File.open(f, "r")                                                                  ##  added
-                #     points_text = pf.readlines.join("\n")                                                   ##  for
-                #     pf.close                                                                                ##  su2ds
-                # end                                                                                         ##
-                # points_file[0] = f                                                                          ##
-                # points_file[1] = points_text                                                                ##
 		        File.delete(fpath)
                 uimessage("deleted file '#{fpath}'", 3)
             else
                 uimessage("unexpected entry in file system: '#{fpath}'")
             end
         }
-        #return points_file ## added for su2ds
     end
     
     def find_support_files(filename, subdir="")
@@ -82,10 +73,10 @@ class ExportBase
         end
     end
     
-    def isVisible(e) ## checks if the entity passed to it is visible or not
-        if $inComponent[-1] == true and e.layer.name == 'Layer0' ## not sure exactly what this is about...
+    def isVisible(e) 
+        if $inComponent[-1] == true and e.layer.name == 'Layer0' ## entities on Layer0 inherit their visibility from groups or components that containt them
             return true
-        elsif e.hidden? ## hidden? method from Sketchup API; returns true if element is hidden
+        elsif e.hidden? ## hidden? method from Sketchup API
             return false
         elsif not $visibleLayers.has_key?(e.layer) ## checks $visibleLayers hash to ensure entity's layer is visible
             return false
@@ -102,47 +93,12 @@ class ExportBase
         end
         return s.gsub(/\W/, '')
     end
-    
-    # def exportByCL(entity_list, mat, globaltrans)
-    #     ## unused?
-    #     $materialContext.push(mat)
-    #     lines = []
-    #     entity_list.each { |e|
-    #         if not isVisible(e)
-    #             next
-    #         elsif e.class == Sketchup::Group
-    #             gtrans = globaltrans * e.transformation
-    #             lines += exportByCL(e.entities, e.material, gtrans)
-    #         elsif e.class == Sketchup::ComponentInstance
-    #             gtrans = globaltrans * e.transformation
-    #             $inComponent.push(true)
-    #             lines += exportByCL(e.definition.entities, e.material, gtrans)
-    #             $inComponent.pop()
-    #         elsif e.class == Sketchup::Face
-    #             $facecount += 1
-    #             rp = RadiancePolygon.new(e, $facecount)
-    #             if rp.material == nil or rp.material.texture == nil
-    #                 face = rp.getText(globaltrans)
-    #             else
-    #                 face = rp.getPolyMesh(globaltrans)
-    #                 #XXX$texturewriter.load(e,true)
-    #             end
-    #             lines.push([rp.material, rp.layer.name, face])
-    #         end
-    #     }
-    #     $materialContext.pop()
-    #     return lines
-    # end
-        
-    def exportByGroup(entity_list, parenttrans, instance=false)  ## basically, this will execute, at the lowest level, once for every
-        ## split scene in individual files                       ## group of low-level entities (ie, faces and edges), whether or not
-                                                                 ## these entities are in a Sketchup::Group, Sketchup::Component, or
-                                                                 ## just "floating" in the model
+     
+    def exportByGroup(entity_list, parenttrans, instance=false) 
         references = []
         faces = []
-        entity_list.each { |e|  ## this basically drills down into the group/component hierarchy and recursively adds faces to the faces
-                                ## array
-            if e.class == Sketchup::Group ## if entity is a group...
+        entity_list.each { |e|  ## this drills into group/component hierarchy and recursively adds faces to the faces array
+            if e.class == Sketchup::Group
                 if not isVisible(e) ## continues to next entity if entity is hidden
                     next
                 end
@@ -158,13 +114,11 @@ class ExportBase
                 references.push(ref)
             elsif e.class == Sketchup::Face
                 if instance == false
-                    ## skip layer test if instance is exported
                     if not isVisible(e)
                         next
                     end
                 end
                 faces.push(e)
-                #@texturewriter.load(e,true)
             elsif e.class == Sketchup::Edge
                 next
             elsif e.class == Sketchup::ConstructionPoint  ## added for su2ds
@@ -178,45 +132,11 @@ class ExportBase
         faces.each_index { |i|
             f = faces[i]
             rp = RadiancePolygon.new(f,i)
-            # if rp.isNumeric                                       ## removed for su2ds
-            #                 numpoints += rp.getNumericPoints()
-            # elsif $MAKEGLOBAL                             ## removed for su2ds
-            #     faces_text += rp.getText(parenttrans)
-            # else
-            #     faces_text += rp.getText()
-            #else
-            #faces_text += rp.getText(parenttrans)   ## faces_text only used for "by Group" export; text for 
-                                                    ## "by layer" and "by colour" export stored in $byLayer and $byColor
-            rp.getText(parenttrans)     ## modified for su2ds; "by Group"" export no longer available so text not needed
-            #end
+            rp.getText(parenttrans)
         }
-        
-        ## if we have numeric points save to *.fld file
-        # if numpoints != []                    ## removed for su2ds
-        #     createNumericFile(numpoints)
-        # end
         
         ## stats message  
         uimessage("exported entities [refs=%d, faces=%d]" % [references.length, faces.length], 1)
-
-        ## create 'by group' files or stop here                 ## modified for su2ds -- $MODE will always be 'by color', 
-        # if $MODE == 'by layer' or $MODE == 'by color'         ## so this logic not necessary
-        #     return "## mode = '#{$MODE}' -> no export"
-        # elsif $nameContext.length <= 1
-        #     return writeGeometryFiles(references, faces_text, parenttrans)
-        # else
-        #     ref_text = references.join("\n")
-        #     text = ref_text + "\n\n" + faces_text
-        #     filename = getFilename()
-        #     if not createFile(filename, text)
-        #         msg = "\n## ERROR: error creating file '%s'\n" % filename
-        #         uimessage(msg)
-        #         return msg
-        #     else
-        #         xform = getXform(filename, parenttrans)
-        #         return xform
-        #     end
-        # end
     end
     
     ## new for su2ds
@@ -238,7 +158,6 @@ class ExportBase
                 uimessage("WARNING: Components cannot be discretized into point meshes")
             elsif e.class == Sketchup::Face
                 if instance == false
-                    ## skip layer test if instance is exported
                     if not isVisible(e)
                         next
                     end
@@ -260,47 +179,23 @@ class ExportBase
             numpoints += rp.getNumericPoints() ## keep numpoints to count points for uimessage
         }
         $point_text += numpoints ## update point text variable
-        
-        # if numpoints != [] ## moved this to RadianceScene
-        #             createNumericFile(numpoints)
-        #         end
-        
+
         ## stats message  
         uimessage("meshed %d faces, creating %d points" % [faces.length, numpoints.length])        
     end
-    
-    # def writeGeometryFiles(references, faces_text, parenttrans)   ## removed for su2ds
-    #     ## only implemented by RadianceScene
-    #     true
-    # end
-    
-    # def prepareSceneDir(scene_dir)    ## removed for su2ds
-    #     ["octrees", "images", "logfiles", "ambfiles"].each { |subdir|
-    #         createDirectory("#{scene_dir}/#{subdir}")
-    #     }
-    # end 
-    
+        
     def removeExisting(project_dir)
-        if FileTest.exists?(project_dir) ## Ruby utility; returns true if project_dir exists
+        if FileTest.exists?(project_dir)
             project_name = File.basename(project_dir) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
             ui_result = (UI.messagebox "Remove existing DAYSIM project files?", MB_OKCANCEL, "Remove project files?")
             if ui_result == 1
                 uimessage('removing DAYSIM project files')
                 clearDirectory(project_dir)
-                #prepareSceneDir(project_dir) ## creates new Radiance directory structure, w/ "octrees," "images," "logfiles," 
-                                           ## and "ambfiles" folders. Removed for su2ds. 
-                # if points_file[0] != nil                        ## added for su2ds
-                #     path = "#{project_dir}/#{points_file[0]}"   ##
-                #     text = points_file[1]                       ##
-                #     createFile(path,text)                       ##
-                # end                                             ##
                 return true
             else
                 uimessage('export canceled')
                 return false
             end
-        else
-            #prepareSceneDir(project_dir)
         end
         return true
     end
@@ -367,34 +262,9 @@ class ExportBase
         return true
     end 
     
-    # def createNumericFile(points)                                                 ## removed for su2ds
-    #     ## write points to file in a save way; if file exists merge points
-    #     name = $nameContext[-1]
-    #     #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
-    #     filename = getFilename("/#{name}.pts")
-    #     if FileTest.exists?(filename)
-    #         uimessage("updating field '%s'" % filename)
-    #         f = File.new(filename)
-    #         txt = f.read()
-    #         f.close()
-    #         oldpoints = txt.split("\n")
-    #         points += oldpoints
-    #     end
-    #     points.uniq!
-    #     points.sort!
-    #     text = points.join("\n")
-    #     if not createFile(filename, text)
-    #         uimessage("Error: Could not create numeric file '#{filename}'")
-    #     else
-    #         uimessage("Created field '%s' (%d points)" % [filename, points.length])
-    #     end
-    # end
-    
     ## new for su2ds
     def createPointsFile(points)
-        ## write points to file in a save way; if file exists merge points
         name = $project_name
-        #filename = getFilename("numeric/#{name}.fld") ## modified for su2ds
         filename = getFilename("#{name}.pts")
         if FileTest.exists?(filename)
             uimessage("updating field '%s'" % filename)
@@ -469,54 +339,7 @@ class ExportBase
         filename.sub!(path, '')
         suffix = filename[filename.length-4,4].downcase()
         objname = $nameContext[-1]
-        xform = "!xform -n #{objname} #{filename}"          ## added for su2ds; alternative assuming $MAKEGLOBAL = true 
-        # if $MAKEGLOBAL                                    ## removed for su2ds
-        #     xform = "!xform -n #{objname} #{filename}"
-        # else
-        #     #TODO: mirror 
-        #     mirror = ""
-        #     
-        #     ## scale is calculated by replmarks
-        #     ## we just check for extrem values
-        #     a = trans.to_a
-        #     scale = Geom::Vector3d.new(a[0..2])
-        #     if scale.length > 10000 or scale.length < 0.0001
-        #         uimessage("Warning unusual scale (%.3f) for object '%s'" % [scale.length, objname]) 
-        #     end
-        #     
-        #     ## transformation
-        #     trans = trans * $SCALETRANS
-        #     a = trans.to_a
-        #     o = a[12..14]
-        #     vx = [o[0]+a[0], o[1]+a[1], o[2]+a[2]]
-        #     vy = [o[0]+a[4]*0.5, o[1]+a[5]*0.5, o[2]+a[6]*0.5]
-        #     marker = "replaceme polygon #{objname}\n0\n0\n9\n"
-        #     marker += "%.6f %.6f %.6f\n" % o
-        #     marker += "%.6f %.6f %.6f\n" % vx 
-        #     marker += "%.6f %.6f %.6f\n" % vy
-        #     
-        #     if suffix == '.oct'
-        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -i #{filename} replaceme"
-        #     elsif suffix == '.msh'
-        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -I #{filename} replaceme"
-        #     else
-        #         cmd = "echo '#{marker}' | replmarks -s 1.0 -x #{filename} replaceme"
-        #     end
-        #     f = IO.popen(cmd)
-        #     lines = f.readlines
-        #     f.close()
-        #     begin
-        #         xform = lines[2].strip()
-        #         parts = xform.split()
-        #         p1 = parts[0..2]
-        #         p2 = parts[3..30]
-        #         xform = p1.join(" ") + " #{mirror} " + p2.join(" ")
-        #     rescue
-        #         msg = "ERROR: could not generate '!xform' command for file '#{filename}'"
-        #         uimessage("%s\n" % msg)
-        #         xform = "## %s" % msg
-        #     end
-        # end
+        xform = "!xform -n #{objname} #{filename}"
         return xform
     end 
     

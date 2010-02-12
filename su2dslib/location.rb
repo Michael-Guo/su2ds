@@ -58,9 +58,7 @@ class LocationDialog
         @longitude = checkRange(dlg[3],  180, 'longitude')
         @tzoffset  = checkRange(dlg[4], 12.5, 'time zone offset')
         @elevation = dlg[5]
-        #@north     = checkRange(dlg[5],  180, 'north angle')
         @north     = checkRange(dlg[6],  180, 'north angle')
-        #shownorth  = dlg[6]
         shownorth  = dlg[7]
         if shownorth == 'true'
             @shownorth = true
@@ -135,40 +133,5 @@ class LocationDialog
         showValues
     end
 end
-
-# def locationdialog
-#     begin
-#         ld = LocationDialog.new()
-#         ld.show()
-#     rescue => e 
-#         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-#         UI.messagebox msg            
-#     end 
-# end
-
-
-# def runTest
-#     locationdialog()
-# end
-
-
-
-# if $DEBUG
-#     printf "debug mode\n"
-#     runTest()
-# else
-#     ## create menu entry
-#     begin
-#         if (not file_loaded?("location.rb"))
-#             pmenu = UI.menu("Plugin")
-#             pmenu.add_item("location") { locationdialog }
-#         end
-#     rescue => e
-#         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-#         UI.messagebox msg
-#         printf "location.rb: entry to menu 'Plugin' failed:\n\n%s\n" % msg
-#     end
-#     file_loaded("location.rb")
-# end
 
 

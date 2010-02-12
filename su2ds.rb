@@ -40,17 +40,6 @@ require "su2dslib/radiance_entities.rb"
 require "su2dslib/radiancescene.rb"
 require "su2dslib/location.rb"
 
-# $RADPRIMITIVES = {  "plastic"    => 1,                        ## removed for su2ds
-#                     "glass"      => 1,
-#                     "trans"      => 1, "trans2" => 1,
-#                     "metal"      => 1, "metal2" => 1,
-#                     "glow"       => 1,
-#                     "light"      => 1,
-#                     "source"     => 1,
-#                     "mirror"     => 1,
-#                     "dielectric" => 1, "dielectric2" => 1,
-#                     "void"       => 1}
-
 $testdir = ""
 
 ## reload all script files for debugging
@@ -79,19 +68,12 @@ end
 
 
 ## define defaults if config file is messed up
-$BUILD_MATERIAL_LIB = false
-#$EXPORTALLVIEWS     = false    ## removed for su2ds
-#$MAKEGLOBAL         = false    ## removed for su2ds     
+$BUILD_MATERIAL_LIB = false  
 $LOGLEVEL           = 0                ## don't report details
-#$MODE               = 'by layer'       ## "by group"|"by layer"|"by color"     ## removed for su2ds
 $RAD                = ''
-#$REPLMARKS          = '/usr/local/bin/replmarks' ## removed for su2ds
-#$PREVIEW            = false       ## removed for su2ds 
-#$SHOWRADOPTS        = true         ## removed for su2ds
 $SUPPORTDIR         = '/Library/Application Support/Google Sketchup 7/Sketchup'
 $TRIANGULATE        = false    
 $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radiance)
-#$UTC_OFFSET         = nil          ## removed for su2ds
 $ZOFFSET            = nil     
 
 ## try to load configuration from file
@@ -101,12 +83,10 @@ loadPreferences()
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 
 
-#def startExport(selected_only=0)
-def startExport ## modified for su2ds
+def startExport 
     begin
         $MatLib = MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
         rs = RadianceScene.new()
-        #rs.export(selected_only)
         rs.export ## modified for su2ds
     rescue => e 
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
@@ -187,11 +167,9 @@ else
         if (not file_loaded?("su2ds.rb"))
             pmenu = UI.menu("Plugin")
             radmenu = pmenu.add_submenu("su2ds")
-            #radmenu.add_item("export scene") { startExport(0) } ## modified for su2ds
             radmenu.add_item("create DAYSIM header file") { startExport }
             radmenu.add_item("create sensor point mesh") { startPointsExport }
             radmenu.add_item("set location") { locationDialog } ## added for su2ds
-            #radmenu.add_item("export selection") { startExport(1) } ## removed for su2ds
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
             matmenu.add_item("resolve conflicts") { resolveConflicts }

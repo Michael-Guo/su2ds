@@ -17,7 +17,7 @@ class MaterialLibrary < ExportBase
             uimessage("Warning: '$SUPPORTDIR' is not set. No materials available.")
             return
         end
-        mdir = File.join($SUPPORTDIR, 'Materials') ## mdir = /Library/Application Support/Google Sketchup 7/Sketchup/Materials -- this is where all the sketchup material files are located
+        mdir = File.join($SUPPORTDIR, 'Materials') ## mdir = directory where all the sketchup material files are located
         if not FileTest.directory?(mdir)
             uimessage("Warning: directory 'Materials' not found. No materials available.")
             return
@@ -108,52 +108,16 @@ class MaterialContext < ExportBase
             filename = getFilename("materials.rad")
         end
         defined = {}
-        #text = "## materials.rad\n"                    ## modified
-        #text += getMaterialDescription(nil)            ## for
-        $materialText = "## materials\n"            ## su2ds
-        $materialText += getMaterialDescription(nil)    ##
-        # if $MODE == 'by layer'                                        ## removed for su2ds
-        #     ## 'by layer' creates alias to default material if no     ## 'by layer' export no longer available
-        #     ## definition is provided in library (TODO)
-        #     $byLayer.each_pair { |lname,lines|
-        #         if lines.length == 0
-        #             ## empty layer
-        #             next
-        #         end
-        #         if $RADPRIMITIVES.has_key?(lname)
-        #             lname = "layer_" + lname
-        #         end
-        #         defined[lname] = getMaterialDescription(lname)
-        #     }
-        # else
+        $materialText = "## materials\n"            
+        $materialText += getMaterialDescription(nil)    
         @materialHash.each_pair { |mat,mname|
             defined[mname] = getMaterialDescription(mat)
         }
         # end
         marray = defined.sort()
         marray.each { |a|
-            #text += a[1]           ## modified for su2ds; stores material text in global variable to be written
             $materialText += a[1]   ## elsewhere
         }
-        # if $MODE != 'by group'                                        ## removed for sud2ds
-        #     ## check against list of files in 'objects' directory     ## 'by group' export mode removeds
-        #     reg_obj = Regexp.new('objects')
-        #     $createdFiles.each_pair { |fpath, value|
-        #         m = reg_obj.match(fpath)
-        #         if m
-        #             ofilename = File.basename(fpath, '.rad')
-        #             if not defined.has_key?(ofilename)
-        #                 uimessage("WARNING: material #{ofilename} undefined; adding alias")
-        #                 text += getMaterialDescription(ofilename)
-        #             end
-        #         end
-        #     }
-        # end
-        # if not createFile(filename, text)                             ## removed for su2ds
-        #     uimessage("ERROR creating material file '#{filename}'")   ## file written elsewhere
-        # end
-        #$texturewriter.write_all
-        #$texturewriter = nil
     end
 
     def setAlias(material, alias_name)
@@ -320,6 +284,7 @@ class MaterialConflicts < ExportBase
     end
         
     def findConflicts(entities=nil)
+        $inComponent = [false]  ## added so check can be done without first exporting model
         if entities == nil
             entities = @model.entities
         end
@@ -346,6 +311,7 @@ class MaterialConflicts < ExportBase
                 end
             end
         }
+        $inComponent.pop()
     end
 
     def count
