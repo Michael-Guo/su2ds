@@ -40,16 +40,16 @@ require "su2dslib/radiance_entities.rb"
 require "su2dslib/radiancescene.rb"
 require "su2dslib/location.rb"
 
-$RADPRIMITIVES = {  "plastic"    => 1,
-                    "glass"      => 1,
-                    "trans"      => 1, "trans2" => 1,
-                    "metal"      => 1, "metal2" => 1,
-                    "glow"       => 1,
-                    "light"      => 1,
-                    "source"     => 1,
-                    "mirror"     => 1,
-                    "dielectric" => 1, "dielectric2" => 1,
-                    "void"       => 1}
+# $RADPRIMITIVES = {  "plastic"    => 1,                        ## removed for su2ds
+#                     "glass"      => 1,
+#                     "trans"      => 1, "trans2" => 1,
+#                     "metal"      => 1, "metal2" => 1,
+#                     "glow"       => 1,
+#                     "light"      => 1,
+#                     "source"     => 1,
+#                     "mirror"     => 1,
+#                     "dielectric" => 1, "dielectric2" => 1,
+#                     "void"       => 1}
 
 $testdir = ""
 
@@ -83,7 +83,7 @@ $BUILD_MATERIAL_LIB = false
 #$EXPORTALLVIEWS     = false    ## removed for su2ds
 #$MAKEGLOBAL         = false    ## removed for su2ds     
 $LOGLEVEL           = 0                ## don't report details
-$MODE               = 'by layer'       ## "by group"|"by layer"|"by color"
+#$MODE               = 'by layer'       ## "by group"|"by layer"|"by color"     ## removed for su2ds
 $RAD                = ''
 #$REPLMARKS          = '/usr/local/bin/replmarks' ## removed for su2ds
 #$PREVIEW            = false       ## removed for su2ds 

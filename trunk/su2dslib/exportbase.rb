@@ -185,8 +185,9 @@ class ExportBase
             # else
             #     faces_text += rp.getText()
             #else
-            faces_text += rp.getText(parenttrans)   ## faces_text seems to only be used for "by Group" export; text for 
+            #faces_text += rp.getText(parenttrans)   ## faces_text only used for "by Group" export; text for 
                                                     ## "by layer" and "by colour" export stored in $byLayer and $byColor
+            rp.getText(parenttrans)     ## modified for su2ds; "by Group"" export no longer available so text not needed
             #end
         }
         
@@ -198,29 +199,28 @@ class ExportBase
         ## stats message  
         uimessage("exported entities [refs=%d, faces=%d]" % [references.length, faces.length], 1)
 
-        ## create 'by group' files or stop here
-        if $MODE == 'by layer' or $MODE == 'by color'
-            return "## mode = '#{$MODE}' -> no export"
-        elsif $nameContext.length <= 1
-            return createMainScene(references, faces_text, parenttrans)
-        else
-            ref_text = references.join("\n")
-            text = ref_text + "\n\n" + faces_text
-            filename = getFilename()
-            if not createFile(filename, text)
-                msg = "\n## ERROR: error creating file '%s'\n" % filename
-                uimessage(msg)
-                return msg
-            else
-                xform = getXform(filename, parenttrans)
-                return xform
-            end
-        end
+        ## create 'by group' files or stop here                 ## modified for su2ds -- $MODE will always be 'by color', 
+        # if $MODE == 'by layer' or $MODE == 'by color'         ## so this logic not necessary
+        #     return "## mode = '#{$MODE}' -> no export"
+        # elsif $nameContext.length <= 1
+        #     return writeGeometryFiles(references, faces_text, parenttrans)
+        # else
+        #     ref_text = references.join("\n")
+        #     text = ref_text + "\n\n" + faces_text
+        #     filename = getFilename()
+        #     if not createFile(filename, text)
+        #         msg = "\n## ERROR: error creating file '%s'\n" % filename
+        #         uimessage(msg)
+        #         return msg
+        #     else
+        #         xform = getXform(filename, parenttrans)
+        #         return xform
+        #     end
+        # end
     end
     
     ## new for su2ds
     def exportPointsByGroup(entity_list, parenttrans, instance=false)   
-        puts __FILE__
         references = []
         faces = []
         entity_list.each { |e| 
@@ -269,10 +269,10 @@ class ExportBase
         uimessage("meshed %d faces, creating %d points" % [faces.length, numpoints.length])        
     end
     
-    def createMainScene(references, faces_text, parenttrans)
-        ## only implemented by RadianceScene
-        true
-    end
+    # def writeGeometryFiles(references, faces_text, parenttrans)   ## removed for su2ds
+    #     ## only implemented by RadianceScene
+    #     true
+    # end
     
     # def prepareSceneDir(scene_dir)    ## removed for su2ds
     #     ["octrees", "images", "logfiles", "ambfiles"].each { |subdir|
