@@ -33,7 +33,6 @@ class RadianceScene < ExportBase
         $components = []
         $componentNames = {}
         $uniqueFileNames = {}
-        #$skyfile = '' ## removed for su2ds
         $log = []
         $facecount = 0
         $filecount = 0
@@ -65,9 +64,6 @@ class RadianceScene < ExportBase
     def setExportDirectory
         ## get name of subdir for Radiance file structure
         page = @model.pages.selected_page
-        # if page != nil
-        #     $project_name = remove_spaces(page.name)
-        # end
         if Sketchup.active_model.get_attribute("modelData", "projectName") != nil
             $project_name = Sketchup.active_model.get_attribute("modelData", "projectName")
         elsif page != nil
@@ -86,34 +82,20 @@ class RadianceScene < ExportBase
         ud.addOption("project directory", $export_dir)
         ud.addOption("project name", $project_name)
         ud.addOption("weather file", $weather_file) ## added for su2ds
-        #ud.addOption("points file", Sketchup.active_model.get_attribute("modelData", "pointsFilePath", "")) ## added for su2ds
         ud.addOption("use present location", true) ## added for su2ds
-        #ud.addOption("show options", $SHOWRADOPTS) ## removed for su2ds 
-        #ud.addOption("all views", $EXPORTALLVIEWS) ## removed for su2ds
-        #ud.addOption("mode", $MODE, "by group|by layer|by color")  ## this removed from "export options" dialog and now only in 
-                                                                    ## preferences dialog as an "advanced" option
         ud.addOption("triangulate", $TRIANGULATE)
-        # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
-        #     ud.addOption("global coords", $MAKEGLOBAL) 
-        # end
-        #if $RAD != ''
-        #    ud.addOption("run preview", $PREVIEW)
-        #end
+        
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $export_dir = ud.results[0] 
             $project_name = ud.results[1]
             if not removeExisting("#{$export_dir}/#{$project_name}")    ## added for su2ds;
                 return false                                            ## moved here so that directory is cleared before
             end                                                         ## weather file is written
-            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go                                                         
-            #$SHOWRADOPTS = ud.results[2] ## removed for su2ds
-            #$EXPORTALLVIEWS = ud.results[2] ## removed for su2ds
-            #$weather_file = ud.results[2] ## added for su2ds
+            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go 
             if not confirmWeatherFile(ud.results[2])
                 uimessage('export canceled')
                 return false
             end
-            #$points_file = ud.results[3] ## added for su2ds
             if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
                 begin
                     ld = LocationDialog.new()
@@ -123,16 +105,7 @@ class RadianceScene < ExportBase
                     UI.messagebox msg            
                 end
             end
-            #$MODE = ud.results[4]
-            #$MODE = ud.results[2]
-            #$TRIANGULATE = ud.results[5]
             $TRIANGULATE = ud.results[4]
-            # if $REPLMARKS != '' and File.exists?($REPLMARKS)  ## removed for su2ds; all exports will be in global coords
-            #     $MAKEGLOBAL = ud.results[5]
-            # end
-            #if $RAD != ''
-            #    $PREVIEW = ud.result[7]
-            #end
         else
             uimessage('export canceled')
             return false
@@ -159,7 +132,6 @@ class RadianceScene < ExportBase
                 name = File.basename(path)
                 newpath = getFilename("#{name}")
                 FileUtils.cp(path, newpath)
-                #File.syscopy(path, newpath)
                 uimessage("weather file #{path} copied to #{newpath}")
                 $weather_file = name
                 return true
@@ -257,13 +229,9 @@ class RadianceScene < ExportBase
     def confirmPointsExportOptions
         ## show user dialog for export options
         ud = UserDialog.new() 
-        #ud.addOption("project path", $export_dir)
-        #ud.addOption("project name", $project_name)
         ud.addOption("points layer", $points_layer)
         ud.addOption("grid spacing", $point_spacing.to_s)
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-            #$export_dir = ud.results[0] 
-            #$project_name = ud.results[1]
             $points_layer = ud.results[0]
             $point_spacing = ud.results[1].to_f
         else
@@ -271,59 +239,10 @@ class RadianceScene < ExportBase
             return false
         end
         
-        # if $export_dir[-1,1] == '/'
-        #             $export_dir = $export_dir[0,$export_dir.length-1]
-        #         end
-        
         return true
     end
     
-    ##def writeGeometryFiles(references, faces_text, parenttrans=nil)       ## REMOVED FOR SU2DS
-    # def writeGeometryFiles(references) ## modified for su2ds, because last two arguments will always be nil
-    #     ## top level scene split in references (*.rad) and faces ('objects/*_faces.rad')
-    #     # if $MODE != 'by group'                                        ## 'by group' export mode
-    #     #             ## start with replacement files for components    ## removed for su2ds
-    #     #             ref_text = $components.join("\n")
-    #     #             ref_text += "\n"
-    #     #         else
-    #     #    ref_text = ""
-    #     #end
-    #     ref_text = ""
-    #     ## create 'objects/*_faces.rad' file        ## removed for su2ds; not necessary for 'by Color' export
-    #     # if faces_text != ''   
-    #     #     faces_filename = getFilename("objects/#{$project_name}_faces.rad")
-    #     #     if createFile(faces_filename, faces_text)
-    #     #         xform = "!xform objects/#{$project_name}_faces.rad"
-    #     #     else
-    #     #         msg = "ERROR creating file '#{faces_filename}'"
-    #     #         uimessage(msg)
-    #     #         xform = "## " + msg
-    #     #     end
-    #     #     references.push(xform)
-    #     # end
-    #     ref_text += references.join("\n")
-    #     ## add materials and sky at top of file
-    #     ref_text = "!xform ./materials.rad\n" + ref_text
-    #     #if $skyfile != ''                                      ## removed
-    #     #    ref_text = "!xform #{$skyfile} \n" + ref_text      ## for 
-    #     #end                                                    ## su2ds
-    #     ref_filename = getFilename("#{$project_name}.rad")
-    #     if not createFile(ref_filename, ref_text)
-    #         msg = "\n## ERROR: error creating file '%s'\n" % filename
-    #         uimessage(msg)
-    #         return msg
-    #     end
-    # end
-    
-    #def export(selected_only=0)
-    def export ## selection option removed for su2ds
-        # scene_dir = "#{$export_dir}/#{$project_name}" ## these are set when RadianceScene object is initiated; note that up to this point, 
-        #                                             ## the only way for $project_name to have been modified from its default value is for a 
-        #                                             ## Sketchup page name to have been read. I think this may be an error, because the
-        #                                             ## consequence is that the directory structure created in removeExisting doesn't
-        # if not confirmExportDirectory or not removeExisting(scene_dir) ## if confirmExportDirectory or removeExisting return false, do not 
-                                                                         ## continue with export.
-        
+    def export      
         # check if points file has been written ## new for su2ds
         point_text = Sketchup.active_model.get_attribute("modelData","pointsText")
         if point_text == nil
@@ -338,50 +257,19 @@ class RadianceScene < ExportBase
             point_text = []
         end
         
-        #if not confirmExportDirectory or not removeExisting("#{$export_dir}/#{$project_name}") # changed this to fix above problem
         if not confirmExportDirectory
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
-        # if $SHOWRADOPTS == true  ## this is irrelevant to a DAYSIM export; therefore, removed
-        #     @radOpts.showDialog
-        # end
-        
-        ## check if global coord system is required
-        # if $MODE != 'by group'                                                ## removed for su2ds; all exports will be in global coords
-        #     uimessage("export mode '#{$MODE}' requires global coordinates")
-        #     $MAKEGLOBAL = true
-        # elsif $REPLMARKS == '' or not File.exists?($REPLMARKS)
-        #     if $MAKEGLOBAL == false
-        #         uimessage("WARNING: 'replmarks' not found.")
-        #         uimessage("=> global coordinates will be used in files")
-        #         $MAKEGLOBAL = true
-        #     end
-        # end
-        
-        ## write sky first for <scene>.rad file
-        # sky = RadianceSky.new()            ## removed
-        # sky.skytype = @radOpts.skytype     ## for
-        # $skyfile = sky.export()            ## su2ds
-        
-        ## export geometry
-        # if selected_only != 0  ## this bit removed for su2ds; redundant once layer-selection option added
-        #     entities = []
-        #     Sketchup.active_model.selection.each{|e| entities = entities + [e]}
-        # else
-        #     entities = Sketchup.active_model.entities
-        # end
         entities = Sketchup.active_model.entities
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($project_name) 
-        #sceneref = exportByGroup(entities, Geom::Transformation.new)
         exportByGroup(entities, Geom::Transformation.new) ## modified for su2ds
         $materialContext.export() ## moved before $nameContext.pop for su2ds
         writeRadianceFile()
         createPointsFile(point_text) ## added for su2ds
         $nameContext.pop()
-        # createRifFile() removed for su2ds
-        # runPreview() removed for su2ds
+        $inComponent.pop()
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
@@ -389,7 +277,6 @@ class RadianceScene < ExportBase
     
     ## new for su2ds
     def exportPoints ## creates points mesh for Daysim analysis
-        #if not confirmPointsExportOptions or not removeExistingPoints("#{$export_dir}/#{$project_name}/#{$project_name}.pts")
         if not confirmPointsExportOptions
             return
         end
@@ -403,12 +290,9 @@ class RadianceScene < ExportBase
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($project_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
-        #createPointsFile($point_text) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "pointsText", $point_text) ## added for su2ds
-        #Sketchup.active_model.set_attribute("modelData", "pointsFilePath", "#{$export_dir}/#{$project_name}/#{$project_name}.pts") ## added for su2ds; stores point file path in model
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         $nameContext.pop()
-        #writeLogFile()  ## removed for su2ds
     end
     
     ## new for su2ds
@@ -464,7 +348,6 @@ class RadianceScene < ExportBase
         text += "scene_rotation_angle      #{s['NorthAngle']}\n"
         text += "sensor_file               #{$project_name}.pts\n"
         text += "radiance_source_files     1,#{$project_name}.rad\n"
-        #text += "sensor_file               #{$points_file}\n"
         text += "shading                   1\n"  ## "1" specifies static shading geometry
         text += "static_system             res/#{$project_name}.dc res/#{$project_name}.ill\n" ## note this line not necessary if previous line = 0
         text += "ViewPoint                 0\n"
@@ -480,64 +363,11 @@ class RadianceScene < ExportBase
         
     end
     
-    # def removeExistingPoints(points_file)
-    #     if FileTest.exists?(points_file) ## Ruby utility; returns true if scene_dir exists
-    #         file_name = File.basename(points_file) ## File.basename returns the last item in a path; ie File.basename(Users/josh/test) = test 
-    #         ui_result = (UI.messagebox "Remove existing points file\n'#{file_name}'?", MB_OKCANCEL, "Remove points file?")
-    #         if ui_result == 1
-    #             # give status message
-    #             uimessage('removing points file')
-    #             # delete points file
-    #             File.delete(points_file)
-    #             uimessage("deleted file '#{points_file}'", 3)
-    #         else
-    #             uimessage('export canceled')
-    #             return false
-    #         end
-    #     end
-    #     # remove point entities from model
-    #     entities = Sketchup.active_model.entities
-    #     removePointsFromModel(entities) 
-    #     return true
-    # end
-    
     def removePointsFromModel(entities)  
-        entities.each { |e|
-            if (e.class == Sketchup::Group) && (e.attribute_dictionary("grid") != nil)
-                if e.attribute_dictionary("grid")["is_grid"]
-                    e.erase!
-                end
-            elsif e.class == Sketchup::Group ## added in case points group gets added to another group
-                removePointsFromModel(e.entities)
-            else
-                next
-            end
-        }
-    end
-
     
     def writeRadianceFile
-        # if $MODE == 'by layer'        ## removed for su2ds; by Color only mode for this export type
-        #     hash = $byLayer
-        # elsif $MODE == 'by color'
-        #     hash = $byColor
-        # else
-        #     return
-        # end
         hash = $geometryHash
         references = []
-        # hash.each_pair { |name,lines|                         ## modified for su2ds
-        #     if lines.length == 0
-        #         next
-        #     end
-        #     name = remove_spaces(name)
-        #     filename = getFilename("objects/#{name}.rad")
-        #     if not createFile(filename, lines.join("\n"))
-        #         uimessage("Error: could not create file '#{filename}'")
-        #     else
-        #         references.push("!xform objects/#{name}.rad")
-        #     end
-        # }
         text = $materialText
         text += "\n## geometry\n"
         hash.each_pair { |name, lines|
@@ -550,19 +380,7 @@ class RadianceScene < ExportBase
         if not createFile(filename, text)
             uimessage("Error: could not create file '#{filename}'")
         end
-        #writeGeometryFiles(references, '')
-        #writeGeometryFiles(references) ## modified for su2ds (and then removed)
     end
-    
-    # def runPreview    ## removed for su2ds
-    #     ##TODO: preview
-    #     if $RAD == '' or $PREVIEW != true
-    #         return
-    #     end
-    #     dir, riffile = File.split(getFilename("%s.rif" % $project_name))
-    #     #Dir.chdir("#{$export_dir}/#{$project_name}")
-    #     #cmd = "%s -o x11 %s" % [$RAD, riffile]
-    # end
     
     def writeLogFile
         line = "###  finished: %s  ###" % Time.new()
@@ -583,116 +401,5 @@ class RadianceScene < ExportBase
         end
     end
    
-    # def getRifObjects   ## removed for su2ds
-    #     text = ''
-    #     if $skyfile != ''
-    #         text += "objects=\t#{$skyfile}\n"
-    #     end
-    #     i = 0
-    #     j = 0
-    #     line = ""
-    #     Dir.foreach(getFilename("objects")) { |f|
-    #         if f[0,1] == '.'
-    #             next
-    #         elsif f[-4,4] == '.rad'
-    #             line += "\tobjects/#{f}"
-    #             i += 1
-    #             j += 1
-    #             if i == 3
-    #                 text += "objects=#{line}\n"
-    #                 i = 0
-    #                 line = ""
-    #             end
-    #             if j == 63
-    #                 uimessage("too many objects for rif file")
-    #                 break
-    #             end
-    #         end
-    #     }
-    #     if line != ""
-    #         text += "objects=#{line}\n"
-    #     end
-    #     return text
-    # end
-    
-#    def createRifFile ## removed for su2ds
-#        text =  "# scene input file for rad\n"
-#        text += @radOpts.getRadOptions
-#        text += "\n"
-#        project = remove_spaces(File.basename($export_dir))
-#        text += "PICTURE=      images/#{project}\n" 
-#        text += "OCTREE=       octrees/#{$project_name}.oct\n"
-#        text += "AMBFILE=      ambfiles/#{$project_name}.amb\n"
-#        text += "REPORT=       3 logfiles/#{$project_name}.log\n"
-#        text += "scene=        #{$project_name}.rad\n"
-#        text += "materials=    materials.rad\n\n"
-#        text += "%s\n\n" % exportViews()
-#        text += getRifObjects
-#        text += "\n"
-#        
-#        filename = getFilename("%s.rif" % $project_name)
-#        if not createFile(filename, text)
-#            uimessage("Error: Could not create rif file '#{filename}'")
-#        end
-#    end
-        
-    # def exportViews           ## removed for su2ds, don't need view files in DAYSIM
-    #     views = []
-    #     views.push(createViewFile(@model.active_view.camera, $project_name))
-    #     if $EXPORTALLVIEWS == true
-    #         pages = @model.pages
-    #         pages.each { |page|
-    #             if page == @model.pages.selected_page
-    #                 next
-    #             elsif page.use_camera? == true
-    #                 name = remove_spaces(page.name)
-    #                 views.push(createViewFile(page.camera, name))
-    #             end
-    #         }
-    #     end
-    #     return views.join("\n")
-    # end
-
-    # def createViewFile(c, viewname)       ## removed for su2ds, don't need views in DAYSIM
-    #     text =  "-vp %.3f %.3f %.3f  " % [c.eye.x*$UNIT,c.eye.y*$UNIT,c.eye.z*$UNIT]
-    #     text += "-vd %.3f %.3f %.3f  " % [c.zaxis.x,c.zaxis.y,c.zaxis.z]
-    #     text += "-vu %.3f %.3f %.3f  " % [c.up.x,c.up.y,c.up.z]
-    #     imgW = @model.active_view.vpwidth.to_f
-    #     imgH = @model.active_view.vpheight.to_f
-    #     aspect = imgW/imgH
-    #     if c.perspective?
-    #         type = '-vtv'
-    #         if aspect > 1.0
-    #             vv = c.fov
-    #             vh = getFoVAngle(vv, imgH, imgW)
-    #         else
-    #             vh = c.fov
-    #             vv = getFoVAngle(vh, imgW, imgH)
-    #         end
-    #     else
-    #         type = '-vtl'
-    #         vv = c.height*$UNIT
-    #         vh = vv*aspect
-    #     end
-    #     text += "-vv %.3f -vh %.3f" % [vv, vh]
-    #     text = "rvu #{type} " + text
-    #     
-    #     filename = getFilename("views/%s.vf" % viewname)
-    #     if not createFile(filename, text)
-    #         msg = "## Error: Could not create view file '#{filename}'"
-    #         uimessage(msg)
-    #         return msg
-    #     else
-    #         return "view=   #{viewname} -vf views/#{viewname}.vf" 
-    #     end
-    # end
-    
-    # def getFoVAngle(ang1, side1, side2)  ## removed for su2ds; only referenced in pieces of code already removed
-    #     ang1_rad = ang1*Math::PI/180
-    #     dist = side1 / (2.0*Math::tan(ang1_rad/2.0))
-    #     ang2_rad = 2 * Math::atan2(side2/(2*dist), 1)
-    #     ang2 = (ang2_rad*180.0)/Math::PI
-    #     return ang2
-    # end
 end
 

@@ -61,16 +61,8 @@ class PreferencesDialog
         @filepath = File.expand_path('config.rb', File.dirname(__FILE__))
         
         @loglevel   = 0                             ## level of report messages
-        #@replmarks  = '/usr/local/bin/replmarks'    ## path to replmarks binary    ## removed for su2ds
-        #@mode       = 'by layer'                    ## "by group"|"by layer"|"by color"  ## removed for su2ds
-        #@makeglobal = false                         ## keep local coordinates of groups and instances  ## removed for su2ds
         @triangulate = false                        ## export faces as triangles (should always work)
         @unit       = 0.0254                        ## use meters for Radiance scene
-        
-        #@utc_offset = nil                          ## used for sky calculations; removed for su2ds
-        #@showradopts = true                        ## show Radiance option dialog ## removed for su2ds
-        #@exportallviews = false                     ## export all saved views  ## removed for su2ds
-
         @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'  ## this is mainly used for material stuff
         @build_material_lib = false                 ## update/create material library in file system
        
@@ -96,14 +88,8 @@ class PreferencesDialog
         end
         ## now all values are in global vars
         @loglevel   = $LOGLEVEL
-        #@replmarks  = $REPLMARKS ## removed for su2ds
-        #@mode       = $MODE ## removed for su2ds
-        # @makeglobal = $MAKEGLOBAL ## removed for su2ds
         @triangulate = $TRIANGULATE
         @unit       = $UNIT
-        #@utc_offset = $UTC_OFFSET  ## removed for su2ds
-        #@showradopts = $SHOWRADOPTS  ## removed for su2ds
-        #@exportallviews = $EXPORTALLVIEWS ## removed for su2ds
         @supportdir = $SUPPORTDIR
         @build_material_lib = $BUILD_MATERIAL_LIB
         validate()
@@ -116,16 +102,10 @@ class PreferencesDialog
             @supportdir = ''
             $SUPPORTDIR = ''
         end
-        # if @replmarks != '' and not File.exists?(@replmarks)                              ## removed for su2ds; all exports are in
-        #     printf "$REPLMARKS does not exist => setting ignored ('#{@REPLMARKS}')\n"     ## global coords
-        #     @replmarks = ''
-        #     $REPLMARKS = ''
-        # end
     end
     
     def showDialog
         updateFromFile(@filepath)
-        #modes = 'by group|by layer|by color' ## removed for su2ds
         a = (-12..12).to_a
         a.collect! { |i| "%.1f" % i }
         utcs = 'nil|' + a.join("|")
@@ -155,33 +135,14 @@ class PreferencesDialog
     
     def evaluateDialog(dlg)
         @loglevel    = dlg[0].to_i
-        #@mode        = dlg[1]  ## removed for su2ds
-        #@makeglobal  = truefalse(dlg[2])       ## modified for su2ds
-        #@triangulate = truefalse(dlg[3])
         @triangulate = truefalse(dlg[1])
-        #@showradopts = truefalse(dlg[4])
-        #@showradopts = truefalse(dlg[3])
-        #@exportallviews = truefalse(dlg[5])
-        #@exportallviews = truefalse(dlg[4])
         begin
-            #@unit = dlg[6].to_f
             @unit = dlg[2].to_f
         rescue
-            #printf "unit setting not a number('#{dlg[6]}') => ignored\n"
             printf "unit setting not a number('#{dlg[2]}') => ignored\n"
         end 
-        #@replmarks  = dlg[7]
-        #@supportdir = dlg[8]
         @supportdir = dlg[3]
-        #@build_material_lib = dlg[9]
         @build_material_lib = dlg[4]
-        #if dlg[10] == 'nil'
-        # if dlg[6] == 'nil'        ## removed for su2ds
-        #     @utc_offset = nil
-        # else
-        #     #@utc_offset = dlg[10].to_f
-        #     @utc_offset = dlg[6].to_f
-        # end
         validate()
     end    
     
@@ -234,39 +195,21 @@ class PreferencesDialog
 
     def applySettings
         $LOGLEVEL   = @loglevel
-        # $REPLMARKS  = @replmarks      ## removed for su2ds
-        # $MODE       = @mode           ## removed for su2ds
-        # $MAKEGLOBAL = @makeglobal  ## removed for su2ds
         $TRIANGULATE = @triangulate
-        #$UTC_OFFSET = @utc_offset  ## removed for su2ds
         $UNIT       = @unit
         $SUPPORTDIR = @supportdir
-        #$SHOWRADOPTS        = @showradopts ## removed for su2ds
-        #$EXPORTALLVIEWS     = @exportallviews  ## removed for su2ds
         $BUILD_MATERIAL_LIB = @build_material_lib
     end
     
     def getSettingsText
-        # if $UTC_OFFSET == nil     ## removed for su2ds
-        #             utc = 'nil' 
-        #         else
-        #             utc = "%.1f" % $UTC_OFFSET
-        #         end
         l= ["$LOGLEVEL              = #{$LOGLEVEL}",
             "$UNIT                  = %.4f" % $UNIT,
-            #{}"$UTC_OFFSET            = %s" % utc, ## removed for su2ds
             "$SUPPORTDIR            = '#{$SUPPORTDIR}'",
-            #{}"$REPLMARKS             = '#{$REPLMARKS}'",  ## removed for su2ds
-            #{}"$MODE                  = '#{$MODE}'",       ## removed for su2ds
-            # "$MAKEGLOBAL            = #{$MAKEGLOBAL}", ## removed for su2ds
             "$TRIANGULATE           = #{$TRIANGULATE}",
-            #{}"$SHOWRADOPTS           = #{$SHOWRADOPTS}", ## removed for su2ds
-            #{}"$EXPORTALLVIEWS        = #{$EXPORTALLVIEWS}", ## removed for su2ds
             "$BUILD_MATERIAL_LIB    = #{$BUILD_MATERIAL_LIB}",
             "$ZOFFSET               = nil",
             #{}"$RAD                   = ''",
             "$RAD                   = ''"]
-            #{}"$PREVIEW               = false"]  ## removed for su2ds
         return l.join("\n")
     end
 end
