@@ -39,6 +39,7 @@ require "su2dslib/material.rb"
 require "su2dslib/radiance_entities.rb"
 require "su2dslib/radiancescene.rb"
 require "su2dslib/location.rb"
+require "su2dslib/resultsgrid.rb"
 
 $testdir = ""
 
@@ -52,6 +53,7 @@ if $DEBUG
     load "su2dslib/radiance_entities.rb"
     load "su2dslib/radiancescene.rb"
     load "su2dslib/location.rb"
+    load "su2dslib/resultsgrid.rb"
 end
 
 ## simple method for reloading all script files from console
@@ -64,6 +66,7 @@ def loadScripts
     load "su2dslib/radiance_entities.rb"
     load "su2dslib/radiancescene.rb"
     load "su2dslib/location.rb"
+    load "su2dslib/resultsgrid.rb"
 end
 
 
@@ -123,16 +126,23 @@ end
 
 
 
-def startImport(f='')
-    ni = NumericImport.new()
-    if $DEBUG
-        ni.loadFile(f)
-        ni.createMesh
-        ni.addContourLines
-        ni.addLabels
-    else
-        ni.loadFile
-        ni.confirmDialog
+# def startImport(f='')             ## removed for su2ds
+#     ni = NumericImport.new()
+#     if $DEBUG
+#         ni.loadFile(f)
+#         ni.createMesh
+#         ni.addContourLines
+#         ni.addLabels
+#     else
+#         ni.loadFile
+#         ni.confirmDialog
+#     end
+# end
+
+def startImport
+    rg = ResultsGrid.new
+    if rg.readResults
+        rg.drawGrid
     end
 end
 
@@ -174,7 +184,7 @@ else
             matmenu.add_item("count conflicts") { countConflicts }
             matmenu.add_item("resolve conflicts") { resolveConflicts }
             importmenu = radmenu.add_submenu("Import")
-            importmenu.add_item("numeric results") { startImport }
+            importmenu.add_item("DAYSIM results") { startImport }
             radmenu.add_item("Preferences") { preferencesDialog() }
         end
     rescue => e

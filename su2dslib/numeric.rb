@@ -5,7 +5,7 @@ class NumericImport < ExportBase
     
     include Delauney
     
-    def initialize(filename='')
+    def initialize(filename='') 
         @bbox = [0,0,1,1]   ## [xmin,ymin,xmax,ymax]
         @clevels = []       ## list of contour level heights
         @filename = ''      ## values file to be read

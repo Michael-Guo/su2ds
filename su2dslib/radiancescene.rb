@@ -364,7 +364,19 @@ class RadianceScene < ExportBase
     end
     
     def removePointsFromModel(entities)  
-    
+        entities.each { |e|		
+            if (e.class == Sketchup::Group) && (e.attribute_dictionary("grid") != nil)		
+                if e.attribute_dictionary("grid")["is_grid"]		
+                    e.erase!		
+                end		
+            elsif e.class == Sketchup::Group ## added in case points group gets added to another group		
+                removePointsFromModel(e.entities)		
+            else		
+                next		
+            end		
+        }		
+    end
+        
     def writeRadianceFile
         hash = $geometryHash
         references = []
@@ -402,4 +414,3 @@ class RadianceScene < ExportBase
     end
    
 end
-
