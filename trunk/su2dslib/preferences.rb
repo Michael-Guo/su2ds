@@ -207,9 +207,7 @@ class PreferencesDialog
             "$SUPPORTDIR            = '#{$SUPPORTDIR}'",
             "$TRIANGULATE           = #{$TRIANGULATE}",
             "$BUILD_MATERIAL_LIB    = #{$BUILD_MATERIAL_LIB}",
-            "$ZOFFSET               = nil",
-            #{}"$RAD                   = ''",
-            "$RAD                   = ''"]
+            "$ZOFFSET               = nil"]
         return l.join("\n")
     end
 end

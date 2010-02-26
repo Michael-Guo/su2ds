@@ -284,6 +284,22 @@ class ExportBase
         end
     end
 
+    ## new for su2ds
+    def getLayerName(name, i=0)
+        layers = Sketchup.active_model.layers
+        layers.each { |layer| 
+            if layer.name.downcase.strip == name.downcase.strip
+                if name.downcase.strip[-2,1] == "_"
+                    name = "#{name[0..-2]}#{i+1}"
+                else
+                    name = "#{name}_#{i+1}"
+                end
+                name = getLayerName(name, (i+1))
+            end
+        }
+        return name
+    end
+    
     def getFilename(name=nil)
         if name == nil
             name = "objects/%s.rad" % remove_spaces($nameContext[-1])
