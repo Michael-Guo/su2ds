@@ -7,6 +7,8 @@ class ResultsGrid < ExportBase
     
     def initialize
         @lines = []  ## array of DAYSIM results read from Daysim output file
+        @xLines = [] ## @lines array sorted in order of ascending x coordinates
+        @yLines = [] ## @lines array sorted in order of ascending y coordinates
         @spacing = 0 ## analysis grid spacing
         @minV = 0    ## minimum value of results
         @maxV = 0    ## maximum value of results
@@ -38,6 +40,10 @@ class ResultsGrid < ExportBase
     def cleanLines
         newlines = []
         @lines.each { |l|
+            # skip comment lines
+            if l.strip[0,1] == "#"
+                next
+            end
             parts = l.split
             begin
                 parts.collect! { |p| p.to_f}
@@ -45,37 +51,39 @@ class ResultsGrid < ExportBase
             rescue
                 uimessage("line ignored: '#{l}'")
             end
-            @lines = newlines
         }
+        @lines = newlines
     end
     
-    ## calculate @spacing, @minV, @maxV
+    ## calculate @xLines, @yLines, @spacing, @minV, @maxV
     def processLines
+        # create @xLines and @yLines
+        @xLines = @lines.sort
+        @yLines = @lines.sort { |x,y|
+            [x[1], x[0], x[2], x[3]] <=> [y[1], y[0], y[2], y[3]]
+        }
         x = []
         v = []
-        # extract and sort x coordinates and point values
+        # calculate @minV and @maxV
         @lines.collect { |l|
-            x.push(l[0])
             v.push(l[3])
         }
-        x.sort!
         v.sort!
+        @minV = v[0]
+        @maxV = v[v.length - 1]
         # calculate spacing
-        x.each_index { |i|
-            if x[i] != x[i+1]
-                if i == (x.length - 1)
+        @xLines.each_index { |i|
+            if @xLines[i][0] != @xLines[i+1][0]
+                if i == (@xLines.length - 1)
                     uimessage("improperly formatted grid; grid spacing could not be calculated")
                     break
                 end
-                @spacing = x[i+1] - x[i]
+                @spacing = @xLines[i+1][0] - @xLines[i][0]
                 break
             else
                 next
             end
         }
-        # calculate @minV and @maxV
-        @minV = v[0]
-        @maxV = v[v.length - 1]
     end
     
     ## draw coloured grid representing results
@@ -83,83 +91,89 @@ class ResultsGrid < ExportBase
         # add layer for results grid
         Sketchup.active_model.layers.add(@layerName)
         
-        # create grid
-        search = [[@spacing, 0], [0, -@spacing], [-@spacing, 0], [0, @spacing]]
-        
-        @lines.each_index { |i|
-            search.each_index { |j|
-                s = []
-                s.push(i) # push index of current point onto array
-                s.push(checkPoint(@lines[i], search[j])) # check for point in direction search[j] and push onto array
-                if s[1] # if s[1] not nil, proceeds
-                    s.push(checkPoint(@lines[i], search[j-1])) # check for point in direction search[j-1] and push onto array
-                    if s[2] # if s[2] not nil, proceeds
-                        s.push(checkPoint(@lines[i], [(search[j][0] + search[j-1][0]), (search[j][1] + search[j-1][1])])) # check for last point in square
-                        if s[3] # if not nil, make square
-                            makeSquare(s)
-                        end
+        # create "north-south" grid lines
+        @xLines.each_index { |i|
+            if i == (@xLines.length - 1)
+                next
+            end
+            # check if next point on same "north-south" line
+            if @xLines[i][0] == @xLines[i+1][0]
+                # check if next point spaced at @spacing
+                if ((@xLines[i][1] + @spacing) * 1000).round == (@xLines[i+1][1] * 1000).round
+                    # check if z-coordinate equal
+                    if @xLines[i][2] == @xLines[i+1][2]
+                        # create geometry
+                        createEdge(@xLines[i], @xLines[i+1])
                     end
                 end
-            }
+            end        
         }
-        puts ## hack; added to stop @lines array from being output to Ruby console at end of import
+        
+        # create "east-west" grid lines
+        @yLines.each_index { |i|
+            if i == (@yLines.length - 1)
+                next
+            end
+            # check if next point on same "east-west" line
+            if @yLines[i][1] == @yLines[i+1][1]
+                # check if next point spaced at @spacing
+                if ((@yLines[i][0] + @spacing) * 1000).round == (@yLines[i+1][0] * 1000).round
+                    # check if z-coordinate equal
+                    if @yLines[i][2] == @yLines[i+1][2]
+                        # create geometry
+                        createEdge(@yLines[i], @yLines[i+1])
+                    end
+                end
+            end        
+        }
+        
+        puts ## hack -- stops @yLines from being output to Ruby console   
     end
     
-    ## create grid square
-    def makeSquare(s)
-        # read coordinates of points from @lines array based on indices in s array, convert units, and create face
-        faceCoords = [@lines[s[0]][0..2], @lines[s[1]][0..2], @lines[s[3]][0..2], @lines[s[2]][0..2]]
-        faceCoords.each { |c|
-            c.collect! { |e| e/$UNIT }
-        }
-        face = @results_group.entities.add_face(faceCoords)
-        face.layer = @layerName
-        face.edges.each { |e|
+    ## create Sketchup::Edge object between two points, create any possible faces and
+    ## colour faces appropriately
+    def createEdge(pt1, pt2)
+        # convert coordinates to Sketchup units
+        ptc = [pt1[0..2], pt2[0..2]].each { |p| p.collect! { |e| e/$UNIT}}
+        # create edge
+        edges = @entities.add_edges(ptc[0], ptc[1])
+        # set edge characteristics, and draw faces
+        edges.each { |e|
             e.layer = @layerName
+            puts @layerName #################################################
             e.hidden = true
-            }
-        # calculate value face should represent by average values of consituent vertices, and assign appropriate colour
-        val = (@lines[s[0]][3] + @lines[s[1]][3] + @lines[s[2]][3] + @lines[s[3]][3]) / 4
+            value = (pt1[3] + pt2[3]) / 2
+            e.set_attribute("values", "value", value)
+            # draw faces
+            if e.find_faces > 0
+                faces = e.faces
+                faces.each { |f|
+                    processFace(f)
+                }
+            end
+        } 
+    end
+    
+    ## process Faces (ie, set characteristics)
+    def processFace(f)
+        f.layer = @layerName
+        puts @layerName ##################################################
+        val = 0
+        f.edges.each { |e|
+            val += e.get_attribute("values", "value") / 4
+        }
+        setColor(f, val)
+    end
+    
+    ## set Face color
+    def setColor(f, val)
         colorVal = (val - @minV) * 255 / (@maxV - @minV)
         faceCol = Sketchup::Color.new
         faceCol.red = 127
         faceCol.blue = 127
         faceCol.green = colorVal
-        face.material = faceCol
-        face.back_material = face.material
-        #string = "red = #{face.material.color.red}\ngreen = #{face.material.color.green}\nblue = #{face.material.color.blue}" #################
-        #result = UI.messagebox(string, MB_OK) ############################
-    end
-    
-    ## checks to see if point defined by input point and xy displacement vector exists in @lines
-    ## note: this has been written in a very inefficient manner; if it's slow, REWRITE!
-    def checkPoint(point, vector)
-        
-        # calculate locaton of point to check for
-        p = [(point[0] + vector[0]), (point[1] + vector[1]), point[2]]
-        
-        # iterate through lines and check for point -- BRUTE FORCE!
-        @lines.each_index{ |i|
-            # check x
-            if (p[0] * 1000).round == (@lines[i][0] * 1000).round
-                # check y
-                if (p[1] * 1000).round == (@lines[i][1] * 1000).round
-                    # check z
-                    if (p[2] * 1000).round == (@lines[i][2] * 1000).round
-                        # return index
-                        return i
-                    else
-                        next
-                    end
-                else
-                    next
-                end
-            else
-                next
-            end
-        }
-        
-        return
+        f.material = faceCol
+        f.back_material = f.material
     end
     
 end # class
