@@ -457,7 +457,7 @@ class RadiancePolygon < ExportBase
                 while y <= bbox[3] ## bbox[3] = ymax        ## writing the point's coordinates to variable points (which is returned)
                     p = Geom::Point3d.new(x,y,z)
                     if Geom::point_in_polygon_2D p, verts, false ## checks if point that has been stepped to is in surface
-                        points.push("%.2f %.2f %.2f 0 0 1" % [p.x*$UNIT, p.y*$UNIT, p.z*$UNIT])
+                        points.push("%.5f %.5f %.5f 0 0 1" % [p.x*$UNIT, p.y*$UNIT, p.z*$UNIT])
                         cpoint = $points_group.entities.add_cpoint(p) ## adds point to points group
                         cpoint.layer = $points_layer ## puts point on points layer
                     end

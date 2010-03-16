@@ -13,8 +13,10 @@ class ResultsGrid < ExportBase
         @minV = 0    ## minimum value of results
         @maxV = 0    ## maximum value of results
         @layerName = getLayerName('results') ## get unique layer name for results layer
+        Sketchup.active_model.layers.add(@layerName)
         @entities = Sketchup.active_model.entities
-        @results_group = @entities.add_group ## group for all results objects to be placed in
+        @resultsGroup = @entities.add_group
+        @resultsGroup.layer = @layerName
         $nameContext = [] ## added for ExportBase.uimessage to work
         $log = [] ## no log implemented at this point; again, justed added for ExportBase.uimessage
     end
@@ -88,8 +90,7 @@ class ResultsGrid < ExportBase
     
     ## draw coloured grid representing results
     def drawGrid
-        # add layer for results grid
-        Sketchup.active_model.layers.add(@layerName)
+
         
         # create "north-south" grid lines
         @xLines.each_index { |i|
@@ -136,11 +137,10 @@ class ResultsGrid < ExportBase
         # convert coordinates to Sketchup units
         ptc = [pt1[0..2], pt2[0..2]].each { |p| p.collect! { |e| e/$UNIT}}
         # create edge
-        edges = @entities.add_edges(ptc[0], ptc[1])
+        edges = @resultsGroup.entities.add_edges(ptc[0], ptc[1])
         # set edge characteristics, and draw faces
         edges.each { |e|
             e.layer = @layerName
-            puts @layerName #################################################
             e.hidden = true
             value = (pt1[3] + pt2[3]) / 2
             e.set_attribute("values", "value", value)
@@ -157,7 +157,6 @@ class ResultsGrid < ExportBase
     ## process Faces (ie, set characteristics)
     def processFace(f)
         f.layer = @layerName
-        puts @layerName ##################################################
         val = 0
         f.edges.each { |e|
             val += e.get_attribute("values", "value") / 4
