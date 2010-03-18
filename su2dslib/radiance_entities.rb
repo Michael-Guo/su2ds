@@ -244,7 +244,7 @@ class RadianceComponent < ExportBase
         $materialContext.pop()
         $nameContext.pop()
 
-        # if @replacement != '' or @iesdata != ''   ## removed for su2ds; 
+        # if @replacement != '' or @iesdata != ''   ## removed for su2ds; no references used
         #     ## no alias for replacement files
         #     ## add to scene level components list
         #     $components.push(ref)
