@@ -220,10 +220,10 @@ class RadianceComponent < ExportBase
         filename = getFilename("objects/#{iname}.rad")
         $nameContext.push(iname) ## use instance name for file
         
-        showTransformation(parenttrans)
-        showTransformation(@entity.transformation)
+        #showTransformation(parenttrans)
+        #showTransformation(@entity.transformation)
         parenttrans *= @entity.transformation
-        showTransformation(parenttrans)
+        #showTransformation(parenttrans)
         
         if @iesdata != ''
             ## luminaire from IES data
@@ -235,7 +235,8 @@ class RadianceComponent < ExportBase
             oldglobal = $globaltrans
             $globaltrans *= @entity.transformation
             $inComponent.push(true)
-            ref = exportByGroup(entities, parenttrans, false)
+            #ref = exportByGroup(entities, parenttrans, false)
+            exportByGroup(entities, parenttrans, false)
             $inComponent.pop()
             $globaltrans = oldglobal
         end
@@ -243,15 +244,15 @@ class RadianceComponent < ExportBase
         $materialContext.pop()
         $nameContext.pop()
 
-        if @replacement != '' or @iesdata != ''
-            ## no alias for replacement files
-            ## add to scene level components list
-            $components.push(ref)
-            return ref
-        else
-            ref = ref.sub(defname, iname)
-            return "\nvoid alias %s %s\n%s" % [alias_name, matname, ref]
-        end
+        # if @replacement != '' or @iesdata != ''   ## removed for su2ds; 
+        #     ## no alias for replacement files
+        #     ## add to scene level components list
+        #     $components.push(ref)
+        #     return ref
+        # else
+        #     ref = ref.sub(defname, iname)
+        #     return "\nvoid alias %s %s\n%s" % [alias_name, matname, ref]
+        # end
     end
     
     def getComponentName(e)
