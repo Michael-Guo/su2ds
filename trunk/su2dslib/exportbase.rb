@@ -103,15 +103,17 @@ class ExportBase
                     next
                 end
                 rg = RadianceGroup.new(e) 
-                ref = rg.export(parenttrans) 
-                references.push(ref)
+                #ref = rg.export(parenttrans)
+                rg.export(parenttrans) 
+                #references.push(ref)
             elsif e.class == Sketchup::ComponentInstance
                 if not isVisible(e)
                     next
                 end
                 rg = RadianceComponent.new(e)
-                ref = rg.export(parenttrans)
-                references.push(ref)
+                #ref = rg.export(parenttrans)
+                rg.export(parenttrans)
+                #references.push(ref)
             elsif e.class == Sketchup::Face
                 if instance == false
                     if not isVisible(e)

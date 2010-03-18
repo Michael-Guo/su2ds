@@ -156,12 +156,17 @@ class ResultsGrid < ExportBase
     
     ## process Faces (ie, set characteristics)
     def processFace(f)
-        f.layer = @layerName
-        val = 0
-        f.edges.each { |e|
-            val += e.get_attribute("values", "value") / 4
-        }
-        setColor(f, val)
+        if f.edges.length > 4
+            f.erase!
+        else
+            f.layer = @layerName
+            val = 0
+            f.edges.each { |e|
+                val += e.get_attribute("values", "value") / 4
+            }
+            setColor(f, val)
+        end
+        
     end
     
     ## set Face color
