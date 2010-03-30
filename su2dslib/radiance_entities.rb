@@ -291,11 +291,6 @@ class RadiancePolygon < ExportBase
         @face = face
         @layer = face.layer
         @material = getMaterial(face)
-        if @material == nil ## modified for su2ds; if no material assigned to a face, face material exported as GenIntWall
-            @material = Sketchup::Color.new(219, 246, 245)
-            @material.name = "GenIntWall"
-            @material.display_name = "GenIntWall"
-        end 
         @index = index
         @verts = []
         @triangles = []

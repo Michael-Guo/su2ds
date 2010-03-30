@@ -13,7 +13,8 @@ class RadianceScene < ExportBase
                                           ## removed this for su2ds
         $project_name = "unnamed_project"
         $export_dir = Dir.pwd()
-        $weather_file = '' ## added for su2ds -- TODO is adding a better method for selecting this path
+        $weather_file = ''
+        $weather_file_path = Sketchup.active_model.get_attribute("modelData", "weatherFile") ## added for su2ds -- TODO is adding a better method for selecting this path
         $points_layer = "points" ## added for su2ds
         $point_spacing = 0.5  ## added for su2ds. Note: this is in export units, not Sketchup units
         $point_text = [] ## added for su2ds
@@ -81,18 +82,12 @@ class RadianceScene < ExportBase
         ud = UserDialog.new() 
         ud.addOption("project directory", $export_dir)
         ud.addOption("project name", $project_name)
-        ud.addOption("weather file", $weather_file) ## added for su2ds
+        ud.addOption("weather file", $weather_file_path) ## added for su2ds
         ud.addOption("use present location", true) ## added for su2ds
         ud.addOption("triangulate", $TRIANGULATE)
         
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-            $export_dir = ud.results[0] 
-            $project_name = ud.results[1]
-            if not removeExisting("#{$export_dir}/#{$project_name}")    ## added for su2ds;
-                return false                                            ## moved here so that directory is cleared before
-            end                                                         ## weather file is written
-            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go 
-            if not confirmWeatherFile(ud.results[2])
+            if not confirmWeatherFile(ud.results[2]) ## added for su2ds; confirms weather file information
                 uimessage('export canceled')
                 return false
             end
@@ -106,6 +101,13 @@ class RadianceScene < ExportBase
                 end
             end
             $TRIANGULATE = ud.results[4]
+            $export_dir = ud.results[0] 
+            $project_name = ud.results[1]
+            if not removeExisting("#{$export_dir}/#{$project_name}")    ## added for su2ds;
+                return false                                            ## moved here so that directory is cleared before
+            end                                                         ## weather file is written
+            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go 
+
         else
             uimessage('export canceled')
             return false
@@ -134,11 +136,21 @@ class RadianceScene < ExportBase
                 FileUtils.cp(path, newpath)
                 uimessage("weather file #{path} copied to #{newpath}")
                 $weather_file = name
+                $weather_file_path = path
                 return true
-            else
-                msg = "Export cancelled. Specified weather file does not exist."
-                UI.messagebox(msg)
-                return false
+            else ## file doesn't exist; prompt user to choose again or cancel
+                message = "Specified weather file does not exist. Choose\n"
+                message += "another, or cancel."
+                UI.messagebox(message, MB_OK)
+                wud = UserDialog.new()
+                wud.addOption("weather file path", $weather_file_path)
+                if wud.show("select weather file")
+                    path = wud.results[0]
+                    return confirmWeatherFile(path)
+                else
+                    uimessage("export cancelled by user")
+                    return false
+                end
             end                
         elsif path[-3,3] == "epw" ## user has selected .epw; prompt to convert, pick another, or cancel
             if File.exists?(path)
@@ -146,7 +158,7 @@ class RadianceScene < ExportBase
                 message += "format. DAYSIM requires .wea format. Would you like \n"
                 message += "to convert this file?\n\n"
                 message += "Click 'yes' to convert, 'no' to choose another weather\n"
-                message += "file, or 'cancel' to abort header file creation"
+                message += "file, or 'cancel' to abort header file creation."
                 result = UI.messagebox(message, MB_YESNOCANCEL)
                 if result == 6 ## user wants to convert file
                     if convertEPW(path)
@@ -158,16 +170,12 @@ class RadianceScene < ExportBase
                     end
                 elsif result == 7 ## user wants to choose another file
                     wud = UserDialog.new()
-                    wud.addOption("weather file path", $weather_file)
+                    wud.addOption("weather file path", $weather_file_path)
                     if wud.show("select weather file")
                         path = wud.results[0]
+                        return confirmWeatherFile(path)
                     else
                         uimessage("export cancelled by user")
-                        return false
-                    end
-                    if confirmWeatherFile(path)
-                        return true
-                    else
                         return false
                     end
                 else ## user cancels
@@ -271,6 +279,7 @@ class RadianceScene < ExportBase
         $nameContext.pop()
         $inComponent.pop()
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
+        Sketchup.active_model.set_attribute("modelData", "weatherFile", $weather_file_path) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
     end

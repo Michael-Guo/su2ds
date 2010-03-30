@@ -177,14 +177,18 @@ else
         if (not file_loaded?("su2ds.rb"))
             pmenu = UI.menu("Plugin")
             radmenu = pmenu.add_submenu("su2ds")
-            radmenu.add_item("create DAYSIM header file") { startExport }
-            radmenu.add_item("create sensor point mesh") { startPointsExport }
-            radmenu.add_item("set location") { locationDialog } ## added for su2ds
+            radmenu.add_item("Set location") { locationDialog } ## added for su2ds            
+            radmenu.add_item("Create sensor point mesh") { startPointsExport }
+            radmenu.add_separator
+            radmenu.add_item("Export DAYSIM header file") { startExport }
+            radmenu.add_separator
+            radmenu.add_item("Import DAYSIM results") { startImport }
+            radmenu.add_separator
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
             matmenu.add_item("resolve conflicts") { resolveConflicts }
-            importmenu = radmenu.add_submenu("Import")
-            importmenu.add_item("DAYSIM results") { startImport }
+            #importmenu = radmenu.add_submenu("Import")
+            #importmenu.add_item("DAYSIM results") { startImport }
             radmenu.add_item("Preferences") { preferencesDialog() }
         end
     rescue => e
