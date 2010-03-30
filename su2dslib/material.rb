@@ -1,7 +1,7 @@
 require "su2dslib/exportbase.rb"
 
 
-class MaterialLibrary < ExportBase
+class MaterialLibrary < ExportBase  
 
     def initialize
         @sketchup_materials = {}        ## map name to path
@@ -99,8 +99,8 @@ class MaterialContext < ExportBase
 
     def initialize
         @nameStack = ['sketchup_default_material']
-        @materialHash = Hash[nil => 'sketchup_default_material']
-        @aliasHash = {}
+        @materialHash = Hash[nil => 'sketchup_default_material'] ## keys are material objects, values are material "save" names
+        @aliasHash = {}  ## keys are alias names, values are material objects
     end
     
     def export(filename='')
@@ -111,7 +111,7 @@ class MaterialContext < ExportBase
         $materialText = "## materials\n"            
         $materialText += getMaterialDescription(nil)    
         @materialHash.each_pair { |mat,mname|
-            defined[mname] = getMaterialDescription(mat)
+            defined[mname] = getMaterialDescription(mat) ## getMaterialDescription returns text of material in Rad format
         }
         # end
         marray = defined.sort()
@@ -201,11 +201,11 @@ class MaterialContext < ExportBase
     
     def getSaveMaterialName(mat)
         ## generate a name that's safe to use in Radiance
-        if @aliasHash.has_key?(mat)
+        if @aliasHash.has_key?(mat) ## keys in @aliasHash are alias names, values are material objects
             return mat
         end
         if @materialHash.has_key?(mat)
-            return @materialHash[mat]
+            return @materialHash[mat] ## keys in @materialHash are material objects, values are save names
         end
         ## if there is no display name, set it
         if mat.display_name == ''
@@ -223,7 +223,7 @@ class MaterialContext < ExportBase
             name = 'sketchup_' + name
         end
         name = remove_spaces(name)
-        set(mat, name)
+        set(mat, name) ## sets value of "mat" key of @materialHash to "name"
         return name
     end
 
