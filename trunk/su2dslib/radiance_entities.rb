@@ -92,132 +92,135 @@ end
 
 class RadianceComponent < ExportBase
 
-    attr_reader :replacement, :iesdata, :lampMF, :lampType
+    #attr_reader :replacement, :iesdata, :lampMF, :lampType
     
     def initialize(entity)
         @entity = entity
         uimessage("RadComponent: '%s' [def='%s']" % [entity.name, entity.definition.name])
-        @replacement = ''
-        @iesdata = ''
-        @lampMF = 0.8
-        @lampType = 'default'
+        #@replacement = ''
+        #@iesdata = ''
+        #@lampMF = 0.8
+        #@lampType = 'default'
     end
             
-    def copyDataFile(transformation)
-        ## copy existing .dat file to './luminaires' directory
-        cpath = @entity.path
-        if cpath == nil or cpath == false
-            return
-        end
-        datapath = cpath.sub('.skp', '.dat')
-        if FileTest.exists?(datapath)
-            uimessage("distribution data file '#{datapath}' found", 1)
-        else
-            return
-        end
-        datafilename = getFilename("luminaires/#{defname}.dat")
-        if $createdFiles[datafilename] != 1
-            f = File.new(@iesdata)
-            datatext = f.read()
-            f.close()
-            if createFile(datafilename, datatext) != true
-                uimessage("## error creating data file '#{datafilename}'")
-                return false
-            end
-        end
-    end
+    # def copyDataFile(transformation)
+    #     ## copy existing .dat file to './luminaires' directory
+    #     cpath = @entity.path
+    #     if cpath == nil or cpath == false
+    #         return
+    #     end
+    #     datapath = cpath.sub('.skp', '.dat')
+    #     if FileTest.exists?(datapath)
+    #         uimessage("distribution data file '#{datapath}' found", 1)
+    #     else
+    #         return
+    #     end
+    #     datafilename = getFilename("luminaires/#{defname}.dat")
+    #     if $createdFiles[datafilename] != 1
+    #         f = File.new(@iesdata)
+    #         datatext = f.read()
+    #         f.close()
+    #         if createFile(datafilename, datatext) != true
+    #             uimessage("## error creating data file '#{datafilename}'")
+    #             return false
+    #         end
+    #     end
+    # end
     
-    def setLampMF(mf=0.8)
-        #TODO: get setting from property
-        @lampMF = mf
-    end
+    # def setLampMF(mf=0.8)
+    #     #TODO: get setting from property
+    #     @lampMF = mf
+    # end
     
-    def setLampType(ltype='default')
-        #TODO: check option?
-        @lampType = ltype
-    end
+    # def setLampType(ltype='default')
+    #     #TODO: check option?
+    #     @lampType = ltype
+    # end
     
-    def copyIESLuminaire(transformation)
-        ies2rad = "!ies2rad -s -m %f -t %s" % [@lampMF, @lampType]
-        ## add filename options
-        defname = getComponentName(@entity)
-        ies2rad = ies2rad + " -o luminaires/#{defname} luminaires/#{defname}.ies"
-        
-        ## copy IES file if it's not in 'luminaires/'
-        iesfilename = getFilename("luminaires/#{defname}.ies")
-        if $createdFiles[iesfilename] != 1
-            f = File.new(@iesdata)
-            iestext = f.read()
-            f.close()
-            if createFile(iesfilename, iestext) != true
-                return "## error creating IES file '#{iesfilename}'\n"
-            end
-        end
-
-        ## combine ies2rad and transformation 
-        xform = getXform(iesfilename, transformation)
-        xform.sub!("!xform", "| xform")
-        xform.sub!(iesfilename, "")
-        return ies2rad + " " + xform + "\n"
-    end
+    # def copyIESLuminaire(transformation)
+    #     ies2rad = "!ies2rad -s -m %f -t %s" % [@lampMF, @lampType]
+    #     ## add filename options
+    #     defname = getComponentName(@entity)
+    #     ies2rad = ies2rad + " -o luminaires/#{defname} luminaires/#{defname}.ies"
+    #     
+    #     ## copy IES file if it's not in 'luminaires/'
+    #     iesfilename = getFilename("luminaires/#{defname}.ies")
+    #     if $createdFiles[iesfilename] != 1
+    #         f = File.new(@iesdata)
+    #         iestext = f.read()
+    #         f.close()
+    #         if createFile(iesfilename, iestext) != true
+    #             return "## error creating IES file '#{iesfilename}'\n"
+    #         end
+    #     end
+    # 
+    #     ## combine ies2rad and transformation 
+    #     xform = getXform(iesfilename, transformation)
+    #     xform.sub!("!xform", "| xform")
+    #     xform.sub!(iesfilename, "")
+    #     return ies2rad + " " + xform + "\n"
+    # end
     
-    def copyReplFile(filename, transformation)
-        #XXX
-        suffix = @replacement[@replacement.length-4,4]
-        defname = getComponentName(@entity)
-        filename = getFilename("objects/#{defname}#{suffix}")
-        
-        f = File.new(@replacement)
-        radtext = f.read()
-        f.close()
-        
-        if $createdFiles[filename] != 1 and createFile(filename, radtext) != true
-            msg = "Error creating replacement file '#{filename}'"
-            uimessage(msg)
-            return "\n## #{msg}\n"
-        else
-            ref = getXform(filename, transformation)
-        end
-        cpdata = copyDataFile(transformation)
-        if cpdata == false
-            msg = "Error: could not copy data file for '#{filename}'"
-            uimessage(msg)
-            return "\n## #{msg}\n"
-        else
-            return "\n" + ref
-        end
-    end
+    # def copyReplFile(filename, transformation)
+    #     #XXX
+    #     suffix = @replacement[@replacement.length-4,4]
+    #     defname = getComponentName(@entity)
+    #     filename = getFilename("objects/#{defname}#{suffix}")
+    #     
+    #     f = File.new(@replacement)
+    #     radtext = f.read()
+    #     f.close()
+    #     
+    #     if $createdFiles[filename] != 1 and createFile(filename, radtext) != true
+    #         msg = "Error creating replacement file '#{filename}'"
+    #         uimessage(msg)
+    #         return "\n## #{msg}\n"
+    #     else
+    #         ref = getXform(filename, transformation)
+    #     end
+    #     cpdata = copyDataFile(transformation)
+    #     if cpdata == false
+    #         msg = "Error: could not copy data file for '#{filename}'"
+    #         uimessage(msg)
+    #         return "\n## #{msg}\n"
+    #     else
+    #         return "\n" + ref
+    #     end
+    # end
     
-    def searchReplFile
-        cpath = @entity.definition.path
-        if cpath == nil or cpath == false
-            return
-        end
-        if FileTest.exists?(cpath.sub('.skp', '.ies'))
-            @iesdata = cpath.sub('.skp', '.ies')
-            uimessage("ies data file '#{@iesdata}' found", 1)
-        end
-        if FileTest.exists?(cpath.sub('.skp', '.oct'))
-            @replacement = cpath.sub('.skp', '.oct')
-            uimessage("replacement file '#{@replacement}' found", 1)
-        elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
-            @replacement = cpath.sub('.skp', '.rad')
-            uimessage("replacement file '#{@replacement}' found", 1)
-        end
-    end
+    # def searchReplFile
+    #     cpath = @entity.definition.path
+    #     if cpath == nil or cpath == false
+    #         return
+    #     end
+    #     if FileTest.exists?(cpath.sub('.skp', '.ies'))
+    #         @iesdata = cpath.sub('.skp', '.ies')
+    #         uimessage("ies data file '#{@iesdata}' found", 1)
+    #     end
+    #     if FileTest.exists?(cpath.sub('.skp', '.oct'))
+    #         @replacement = cpath.sub('.skp', '.oct')
+    #         uimessage("replacement file '#{@replacement}' found", 1)
+    #     elsif FileTest.exists?(cpath.sub('.skp', '.rad'))
+    #         @replacement = cpath.sub('.skp', '.rad')
+    #         uimessage("replacement file '#{@replacement}' found", 1)
+    #     end
+    # end
     
     def export(parenttrans)
         entities = @entity.definition.entities
-        defname = getComponentName(@entity)
+        #defname = getComponentName(@entity)
         iname = getUniqueName(@entity.name)
         
-        mat = getMaterial(@entity)
-        matname = getMaterialName(mat)
-        alias_name = "%s_material" % defname
-        $materialContext.setAlias(mat, alias_name)
-        $materialContext.push(alias_name)
+        mat = getMaterial(@entity) # returns entity material if it exists, nil if not
+        #matname = getMaterialName(mat)  # if nil, returns $materialContext.getCurrentMaterialName();
+                                        # if not, returns $materialContext.getSaveMaterialName(mat)
+        #alias_name = "%s_material" % defname
+        alias_name = "sketchup_default_material" ## changed for su2ds
+        $materialContext.setAlias(mat, alias_name)  # sets alias_name key of @aliasHash value to mat, and alias_name key of
+                                                    # @materialHash to getSaveMaterialName(mat)
+        $materialContext.push(alias_name) # if alias_name isn't nil, gets name using getSaveMaterialName and adds to @nameStack
 
-        filename = getFilename("objects/#{iname}.rad")
+        #filename = getFilename("objects/#{iname}.rad")
         $nameContext.push(iname) ## use instance name for file
         
         #showTransformation(parenttrans)
@@ -225,21 +228,28 @@ class RadianceComponent < ExportBase
         parenttrans *= @entity.transformation
         #showTransformation(parenttrans)
         
-        if @iesdata != ''
-            ## luminaire from IES data
-            ref = copyIESLuminaire(parenttrans)
-        elsif @replacement != ''
-            ## any other replacement file
-            ref = copyReplFile(filename, parenttrans)
-        else
-            oldglobal = $globaltrans
-            $globaltrans *= @entity.transformation
-            $inComponent.push(true)
-            #ref = exportByGroup(entities, parenttrans, false)
-            exportByGroup(entities, parenttrans, false)
-            $inComponent.pop()
-            $globaltrans = oldglobal
-        end
+        # if @iesdata != ''                         ## modified for su2ds; @iesdata and @replacement functionality
+        #     ## luminaire from IES data            ## not needed
+        #     ref = copyIESLuminaire(parenttrans)
+        # elsif @replacement != ''
+        #     ## any other replacement file
+        #     ref = copyReplFile(filename, parenttrans)
+        # else
+        #     oldglobal = $globaltrans
+        #     $globaltrans *= @entity.transformation
+        #     $inComponent.push(true)
+        #     #ref = exportByGroup(entities, parenttrans, false)
+        #     exportByGroup(entities, parenttrans, false)
+        #     $inComponent.pop()
+        #     $globaltrans = oldglobal
+        # end
+        
+        oldglobal = $globaltrans
+        $globaltrans *= @entity.transformation
+        $inComponent.push(true)
+        exportByGroup(entities, parenttrans, false)
+        $inComponent.pop()
+        $globaltrans = oldglobal
         
         $materialContext.pop()
         $nameContext.pop()
@@ -255,21 +265,21 @@ class RadianceComponent < ExportBase
         # end
     end
     
-    def getComponentName(e)
-        ## find name for component instance
-        d = e.definition
-        if $componentNames.has_key?(d)
-            return $componentNames[d]
-        elsif d.name != '' and d.name != nil
-            name = remove_spaces(d.name)
-            $componentNames[d] = name
-            return name
-        else
-            name = getUniqueName('component')
-            $componentNames[d] = name
-            return name
-        end
-    end
+    # def getComponentName(e)
+    #     ## find name for component instance
+    #     d = e.definition
+    #     if $componentNames.has_key?(d)
+    #         return $componentNames[d]
+    #     elsif d.name != '' and d.name != nil
+    #         name = remove_spaces(d.name)
+    #         $componentNames[d] = name
+    #         return name
+    #     else
+    #         name = getUniqueName('component')
+    #         $componentNames[d] = name
+    #         return name
+    #     end
+    # end
 end
 
 
@@ -281,6 +291,11 @@ class RadiancePolygon < ExportBase
         @face = face
         @layer = face.layer
         @material = getMaterial(face)
+        if @material == nil ## modified for su2ds; if no material assigned to a face, face material exported as GenIntWall
+            @material = Sketchup::Color.new(219, 246, 245)
+            @material.name = "GenIntWall"
+            @material.display_name = "GenIntWall"
+        end 
         @index = index
         @verts = []
         @triangles = []
