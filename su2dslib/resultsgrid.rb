@@ -1,4 +1,5 @@
 require "su2dslib/exportbase.rb"
+require "wxSU/lib/Startup"
 
 ## this class imports and displays DAYSIM analysis results
 ## new for su2ds
@@ -12,11 +13,12 @@ class ResultsGrid < ExportBase
         @spacing = 0 ## analysis grid spacing
         @minV = 0    ## minimum value of results
         @maxV = 0    ## maximum value of results
-        @layerName = getLayerName('results') ## get unique layer name for results layer
-        Sketchup.active_model.layers.add(@layerName)
+        @resLayerName = getLayerName('results') ## get unique layer name for results layer
+        @resLayer = Sketchup.active_model.layers.add(@resLayerName)
+        @resLayer.set_attribute("layer_attributes", "results", true)
         @entities = Sketchup.active_model.entities
         @resultsGroup = @entities.add_group
-        @resultsGroup.layer = @layerName
+        @resultsGroup.layer = @resLayerName
         $nameContext = [] ## added for ExportBase.uimessage to work
         $log = [] ## no log implemented at this point; again, justed added for ExportBase.uimessage
     end
@@ -88,11 +90,24 @@ class ResultsGrid < ExportBase
         }
     end
     
+    ## hides any results layers that are visible
+    def hideResLayers
+        layers = Sketchup.active_model.layers
+        layers.each { |l|
+            if l.visible? && l.get_attribute("layer_attributes", "results") && l != @resLayer
+                l.visible = false 
+            end
+        }
+    end
+    
     ## draw coloured grid representing results
     def drawGrid
-
+        
+        hideResLayers ## hides any results layers that are visible
+        Sketchup.active_model.start_operation("task", true) ## suppress UI updating, for speed
         
         # create "north-south" grid lines
+        #t = Time.now ## for benchmarking
         @xLines.each_index { |i|
             if i == (@xLines.length - 1)
                 next
@@ -104,13 +119,15 @@ class ResultsGrid < ExportBase
                     # check if z-coordinate equal
                     if @xLines[i][2] == @xLines[i+1][2]
                         # create geometry
-                        createEdge(@xLines[i], @xLines[i+1])
+                        createEdge(@xLines[i], @xLines[i+1], false)
                     end
                 end
             end        
         }
+        #puts "North-south time: #{Time.now - t}" ## for benchmarking
         
         # create "east-west" grid lines
+        t = Time.now ## for benchmarking     
         @yLines.each_index { |i|
             if i == (@yLines.length - 1)
                 next
@@ -122,34 +139,39 @@ class ResultsGrid < ExportBase
                     # check if z-coordinate equal
                     if @yLines[i][2] == @yLines[i+1][2]
                         # create geometry
-                        createEdge(@yLines[i], @yLines[i+1])
+                        createEdge(@yLines[i], @yLines[i+1], true)
                     end
                 end
             end        
         }
+        #puts "East-west time: #{Time.now - t}" ## for benchmarking
         
+        Sketchup.active_model.start_operation("task", false) ## turn UI updating back on
+        Sketchup.active_model.active_view.refresh ## refresh view
         puts ## hack -- stops @yLines from being output to Ruby console   
     end
     
     ## create Sketchup::Edge object between two points, create any possible faces and
     ## colour faces appropriately
-    def createEdge(pt1, pt2)
+    def createEdge(pt1, pt2, checkFace = true)
         # convert coordinates to Sketchup units
         ptc = [pt1[0..2], pt2[0..2]].each { |p| p.collect! { |e| e/$UNIT}}
         # create edge
         edges = @resultsGroup.entities.add_edges(ptc[0], ptc[1])
         # set edge characteristics, and draw faces
         edges.each { |e|
-            e.layer = @layerName
+            e.layer = @resLayerName
             e.hidden = true
             value = (pt1[3] + pt2[3]) / 2
             e.set_attribute("values", "value", value)
             # draw faces
-            if e.find_faces > 0
-                faces = e.faces
-                faces.each { |f|
-                    processFace(f)
-                }
+            if checkFace
+                if e.find_faces > 0
+                    faces = e.faces
+                    faces.each { |f|
+                        processFace(f)
+                    }
+                end
             end
         } 
     end
@@ -159,7 +181,7 @@ class ResultsGrid < ExportBase
         if f.edges.length > 4
             f.erase!
         else
-            f.layer = @layerName
+            f.layer = @resLayerName
             val = 0
             f.edges.each { |e|
                 val += e.get_attribute("values", "value") / 4
@@ -181,3 +203,8 @@ class ResultsGrid < ExportBase
     end
     
 end # class
+
+## this class represents the dialog used for interaction with the analysis results
+#class ResultsDialog < Wx::Frame
+    
+    
