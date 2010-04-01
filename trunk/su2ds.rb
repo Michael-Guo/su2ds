@@ -82,6 +82,9 @@ $ZOFFSET            = nil
 ## try to load configuration from file
 loadPreferences()
 
+## add observers
+Sketchup.active_model.layers.add_observer(ResultsScaleObserver.new)
+
 ## define scale matrix for unit conversion
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 

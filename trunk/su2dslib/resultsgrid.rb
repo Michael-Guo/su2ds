@@ -13,10 +13,11 @@ class ResultsGrid < ExportBase
         @spacing = 0 ## analysis grid spacing
         @minV = 0    ## minimum value of results
         @maxV = 0    ## maximum value of results
+        @model = Sketchup.active_model
         @resLayerName = getLayerName('results') ## get unique layer name for results layer
-        @resLayer = Sketchup.active_model.layers.add(@resLayerName)
-        @resLayer.set_attribute("layer_attributes", "results", true)
-        @entities = Sketchup.active_model.entities
+        @resLayer = @model.layers.add(@resLayerName)
+        @resLayer.set_attribute("layerData", "results", true)
+        @entities = @model.entities
         @resultsGroup = @entities.add_group
         @resultsGroup.layer = @resLayerName
         $nameContext = [] ## added for ExportBase.uimessage to work
@@ -75,6 +76,7 @@ class ResultsGrid < ExportBase
         v.sort!
         @minV = v[0]
         @maxV = v[v.length - 1]
+        @resLayer.set_attribute("layerData", "resMinMax", [@minV, @maxV]) ## stored for scale generation and adjustment
         # calculate spacing
         @xLines.each_index { |i|
             if @xLines[i][0] != @xLines[i+1][0]
@@ -92,9 +94,9 @@ class ResultsGrid < ExportBase
     
     ## hides any results layers that are visible
     def hideResLayers
-        layers = Sketchup.active_model.layers
+        layers = @model.layers
         layers.each { |l|
-            if l.visible? && l.get_attribute("layer_attributes", "results") && l != @resLayer
+            if l.visible? && l.get_attribute("layerData", "results") && l != @resLayer
                 l.visible = false 
             end
         }
@@ -104,7 +106,7 @@ class ResultsGrid < ExportBase
     def drawGrid
         
         hideResLayers ## hides any results layers that are visible
-        Sketchup.active_model.start_operation("task", true) ## suppress UI updating, for speed
+        @model.start_operation("task", true) ## suppress UI updating, for speed
         
         # create "north-south" grid lines
         #t = Time.now ## for benchmarking
@@ -146,8 +148,9 @@ class ResultsGrid < ExportBase
         }
         #puts "East-west time: #{Time.now - t}" ## for benchmarking
         
-        Sketchup.active_model.start_operation("task", false) ## turn UI updating back on
-        Sketchup.active_model.active_view.refresh ## refresh view
+        @model.start_operation("task", false) ## turn UI updating back on
+        @model.active_layer = @resLayer ## sets results layer to current layer
+        @model.active_view.refresh ## refresh view
         puts ## hack -- stops @yLines from being output to Ruby console   
     end
     
@@ -204,7 +207,80 @@ class ResultsGrid < ExportBase
     
 end # class
 
+## this class is the observer that calls results scale utilies when current layer is changed
+class ResultsScaleObserver < Sketchup::LayersObserver
+    
+    ## activate ResultsScale if "results" layer selected; if "results" layer active and "non-results"
+    ## layer selected, activates nil tool to hide results scale; does nothing if switching between
+    ## "non-results" layers
+    def onCurrentLayerChanged(layers, activeLayer)
+        if activeLayer.get_attribute("layerData", "results")
+            @rs = ResultsScale.new
+            Sketchup.active_model.select_tool(@rs)
+        elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
+                                                                  ## this is kind of rough, because there doesn't
+                                                                  ## seem to be a way to get the previously selected
+                                                                  ## layer, OR obtain the current tool (pop_tool) returning
+                                                                  ## TrueClass for some reason...
+            Sketchup.active_model.select_tool(nil)
+        end     
+    end
+    
+end # class
+
 ## this class represents the dialog used for interaction with the analysis results
 #class ResultsDialog < Wx::Frame
     
+## this class controls the scale that gets printed to the screen when a
+## results layer is selected. It is constructed as per the Sketchup API
+## Tool interface
+class ResultsScale
     
+    def activate
+        ## get current layer name, and results min and maxes stored within layer
+        @model = Sketchup.active_model
+        @layer = @model.active_layer
+        @projectName = @model.get_attribute("modelData", "projectName", "Unnamed Project")
+        @layerName = @layer.name
+        @min = @layer.get_attribute("layerData", "resMinMax")[0]
+        @max = @layer.get_attribute("layerData", "resMinMax")[1]
+    end
+    
+    def draw(view)
+        
+        ## draw text
+        view.draw_text([15, 15, 0], @projectName.upcase)
+        view.draw_text([15, 28, 0], @layerName)
+        view.draw_text([65, 46, 0], @max.to_s)
+        view.draw_text([65, 136, 0], @min.to_s)
+        
+        # draw scale
+        # (0..9).to_a.each { |i|
+        #     pt1 = [15, (47 + i*10), 0]
+        #     pt2 = [60, (47 + i*10), 0]
+        #     pt3 = [60, (57 + i*10), 0]
+        #     pt4 = [15, (57 + i*10), 0]
+        #     pts = [pt1, pt2, pt3, pt4]
+        #     step = (@max - @min) / 9
+        #     colorVal = ((max - i*step) - min) * 255 / (max - min) ###########
+        #     drawColor = Sketchup::Color.new(127, colorVal, 127)
+        #     view.drawing_color = drawColor
+        #     view.draw2d(GL_QUADS, pts)
+        # }
+        min = 0
+        max = 100
+        (0..9).to_a.each { |i|
+            pt1 = [15, (47 + i*10), 0]
+            pt2 = [60, (47 + i*10), 0]
+            pt3 = [60, (57 + i*10), 0]
+            pt4 = [15, (57 + i*10), 0]
+            pts = [pt1, pt2, pt3, pt4]
+            step = (max - min) / 9
+            colorVal = ((max - i*step) - min) * 255 / (max - min)
+            drawColor = Sketchup::Color.new(127, colorVal, 127)
+            view.drawing_color = drawColor
+            view.draw2d(GL_QUADS, pts)
+        }
+    end
+    
+end # class
