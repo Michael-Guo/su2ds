@@ -166,7 +166,7 @@ class ResultsGrid < ExportBase
             e.layer = @resLayerName
             e.hidden = true
             value = (pt1[3] + pt2[3]) / 2
-            e.set_attribute("values", "value", value)
+            e.set_attribute("edgeData", "value", value)
             # draw faces
             if checkFace
                 if e.find_faces > 0
@@ -187,8 +187,9 @@ class ResultsGrid < ExportBase
             f.layer = @resLayerName
             val = 0
             f.edges.each { |e|
-                val += e.get_attribute("values", "value") / 4
+                val += e.get_attribute("edgeData", "value") / 4
             }
+            f.set_attribute("faceData", "value", val)
             setColor(f, val)
         end
         
@@ -231,7 +232,7 @@ end # class
 ## this class controls the scale that gets printed to the screen when a
 ## results layer is selected. It is constructed as per the Sketchup API
 ## Tool interface
-class ResultsScale
+class ResultsScale  
     
     def activate
         ## get current layer name, and results min and maxes stored within layer
@@ -261,11 +262,7 @@ class ResultsScale
             pt4 = [15, (57 + i*10), 0]
             pts = [pt1, pt2, pt3, pt4]
             step = (@max - @min) / 9
-            colorVal = ((@max - i*step) - @min) * 255 / (@max - @min) ###########
-            # drawColor = Sketchup::Color.new
-            # drawColor.red = 127 
-            # drawColor.green = colorVal
-            # drawColor.blue = 127
+            colorVal = ((@max - i*step) - @min) * 255 / (@max - @min)
             drawColor = Sketchup::Color.new(127, colorVal.to_i, 127)
             view.drawing_color = drawColor
             view.draw2d(GL_QUADS, pts)
@@ -274,8 +271,8 @@ class ResultsScale
     
 end # class
 
-## this class represents the dialog used for interaction with the analysis results
-class ResultsDialog
+## this class represents the window "frame" for the the results dialog
+class RDFrame < Wx::Frame
 
     def initialize()
         
@@ -284,48 +281,127 @@ class ResultsDialog
         position = Wx::DEFAULT_POSITION
         size = Wx::Size.new(200,200)
         style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
-        model = Sketchup.active_model
-        layer = model.active_layer
-        min = layer.get_attribute("layerData", "resMinMax")[0]
-        max = layer.get_attribute("layerData", "resMinMax")[1]
-        minR = (min * 1000).round.to_f / 1000
-        maxR = (max * 1000).round.to_f / 1000
         
         ## create frame and panel
-        frame = Wx::Frame.new(WxSU.app.sketchup_frame, -1, title, position, size, style)
-        panel = Wx::Panel.new(frame, -1, Wx::DEFAULT_POSITION, size)
+        super(WxSU.app.sketchup_frame, -1, title, position, size, style)
+        
+        panel = RDPanel.new(self, -1, position, size)
         ## add functionality
+    end
+end
+
+## this class represents the "panel" for the Results Dialog, which lives within
+## the frame defined above, and contains the buttons and dialogs
+class RDPanel < Wx::Panel
+    
+    def initialize(parent, id, position, size)
+        
+        @model = Sketchup.active_model
+        @layer = @model.active_layer
+        @min = @layer.get_attribute("layerData", "resMinMax")[0]
+        @max = @layer.get_attribute("layerData", "resMinMax")[1]
+        minR = (@min * 1000).round.to_f / 1000
+        maxR = (@max * 1000).round.to_f / 1000
+        
+        ## initialize
+        super(parent, id, position, size)
         
         ## max/min rescaling
 		maxTCPos = Wx::Point.new(10,10)
 		minTCPos = Wx::Point.new(10,35)
 		maxMinTCSize = Wx::Size.new(50,20)
-		maxTC = Wx::TextCtrl.new(panel, -1, maxR.to_s, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
-		minTC = Wx::TextCtrl.new(panel, -1, minR.to_s, minTCPos, maxMinTCSize, Wx::TE_LEFT)
+		@maxTC = Wx::TextCtrl.new(self, -1, maxR.to_s, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
+		@minTC = Wx::TextCtrl.new(self, -1, minR.to_s, minTCPos, maxMinTCSize, Wx::TE_LEFT)
 		
 		maxSTPos = Wx::Point.new(65,12)
 		minSTPos = Wx::Point.new(65,37)
-		maxST = Wx::StaticText.new(panel, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
-		minST = Wx::StaticText.new(panel, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
+		maxST = Wx::StaticText.new(self, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
+		minST = Wx::StaticText.new(self, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
 		
 		maxMinBPos = Wx::Point.new(110,34)
 		maxMinBSize = Wx::Size.new(70,20)
-		maxMinB = Wx::Button.new(panel, -1, 'redraw', maxMinBPos, maxMinBSize, Wx::BU_BOTTOM)
-		#evt_button(maxMinB.get_id()) {|e| on_redraw(e)}
-		evt_button(maxMinB) {puts "PUSHED!"}
+		maxMinB = Wx::Button.new(self, -1, 'redraw', maxMinBPos, maxMinBSize, Wx::BU_BOTTOM)
+		evt_button(maxMinB.get_id()) {|e| on_redraw(e)}
 		
-		frame.show
+		## export image ## one day -- haven't got this figured out quite yet
+        # exBPos = Wx::Point.new(10,65)
+        # exBSize = Wx::Size.new(120,20)
+        # exB = Wx::Button.new(self, -1, 'export image', exBPos, exBSize, Wx::BU_BOTTOM)
+        # evt_button(exB.get_id()) { |e| on_export(e)}		
     end
     
     ## method to run when redraw button in Results Options palette is pressed;
     ## redraws results grid on selected layer according to max and min values entered
     ## in Results Options palette
-    def on_redraw
-        puts "HELLO!"
+    def on_redraw(e) ## NOTE: for some reason, you need to pass the argument, even if it isn't used
+        $timelog = [] #######
+        begin
+            @layer = @model.active_layer
+            #@model.start_operation("task", true) ## suppress UI updating, for speed
+            
+            ## ensure active layer is still a results layer; if so proceed
+            if @layer.get_attribute("layerData", "results")
+            
+                # reset layer max and min as per values entered in Results Dialog
+                newMin = @minTC.get_value().to_f
+                newMax = @maxTC.get_value().to_f
+                @layer.set_attribute("layerData", "resMinMax", [newMin, newMax])
+                @min = newMin
+                @max = newMax
+                
+                $timelog.push("#{Time.now} - starting interations ") #########
+                # iterate through model entities to get to results faces that need to be recoloured
+                entities = @model.entities
+                entities.each { |e|
+                    if (e.layer == @layer) && (e.class == Sketchup::Group)
+                        e.entities.each { |f|
+                            if f.class == Sketchup::Face
+                                processFace(f)
+                            end
+                        }
+                    end
+                }
+            end
+            
+            $timelog.push("#{Time.now} - iterations complete ") ########
+            #@model.start_operation("task", false) ## turn UI updating back on
+            #@model.active_view.refresh ## refresh view
+            File.open("/Users/josh/Desktop/time.txt", "w") do |f| #######
+                $timelog.each { |l|                              #######
+                    f.puts l                                     #######
+                }                                                #######
+            end                                                  #######
+        rescue => ex
+            puts ex.class
+            puts ex
+        end
+            
     end
+    
+    ## method for recolouring face based on adjusted min and max scale values
+    def processFace(f)
+        $timelog.push("#{Time.now} - getting attribute") #######
+        val = f.get_attribute("faceData", "value")
+        
+        $timelog.push("#{Time.now} - beginning to recolour face") #######
+        if val
+            colorVal = (val - @min) * 255 / (@max - @min)
+            faceCol = Sketchup::Color.new(127, colorVal.to_i, 127)
+            f.material = faceCol
+            f.back_material = faceCol
+        end
+        $timelog.push("#{Time.now} - face recoloured") #######
+    end
+        
+    ## method for exporting image; not yet implemented; need to figure out way to include results scale
+    # def on_export(e)
+    #     view = Sketchup.active_model.active_view
+    #     view.write_image("/Users/josh/Desktop/test_image.jpg", 900, 500, true)
+    # end
     
 end # class
 
 def showMenu
-    rd = ResultsDialog.new
+    rd = RDFrame.new
+    rd.show
 end
