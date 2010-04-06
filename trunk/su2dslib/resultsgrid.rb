@@ -227,9 +227,6 @@ class ResultsScaleObserver < Sketchup::LayersObserver
     end
     
 end # class
-
-## this class represents the dialog used for interaction with the analysis results
-#class ResultsDialog < Wx::Frame
     
 ## this class controls the scale that gets printed to the screen when a
 ## results layer is selected. It is constructed as per the Sketchup API
@@ -244,6 +241,8 @@ class ResultsScale
         @layerName = @layer.name
         @min = @layer.get_attribute("layerData", "resMinMax")[0]
         @max = @layer.get_attribute("layerData", "resMinMax")[1]
+        @minR = (@min * 100).round.to_f / 100
+        @maxR = (@max * 100).round.to_f / 100
     end
     
     def draw(view)
@@ -251,36 +250,82 @@ class ResultsScale
         ## draw text
         view.draw_text([15, 15, 0], @projectName.upcase)
         view.draw_text([15, 28, 0], @layerName)
-        view.draw_text([65, 46, 0], @max.to_s)
-        view.draw_text([65, 136, 0], @min.to_s)
+        view.draw_text([65, 46, 0], @maxR.to_s)
+        view.draw_text([65, 136, 0], @minR.to_s)
         
         # draw scale
-        # (0..9).to_a.each { |i|
-        #     pt1 = [15, (47 + i*10), 0]
-        #     pt2 = [60, (47 + i*10), 0]
-        #     pt3 = [60, (57 + i*10), 0]
-        #     pt4 = [15, (57 + i*10), 0]
-        #     pts = [pt1, pt2, pt3, pt4]
-        #     step = (@max - @min) / 9
-        #     colorVal = ((max - i*step) - min) * 255 / (max - min) ###########
-        #     drawColor = Sketchup::Color.new(127, colorVal, 127)
-        #     view.drawing_color = drawColor
-        #     view.draw2d(GL_QUADS, pts)
-        # }
-        min = 0
-        max = 100
         (0..9).to_a.each { |i|
             pt1 = [15, (47 + i*10), 0]
             pt2 = [60, (47 + i*10), 0]
             pt3 = [60, (57 + i*10), 0]
             pt4 = [15, (57 + i*10), 0]
             pts = [pt1, pt2, pt3, pt4]
-            step = (max - min) / 9
-            colorVal = ((max - i*step) - min) * 255 / (max - min)
-            drawColor = Sketchup::Color.new(127, colorVal, 127)
+            step = (@max - @min) / 9
+            colorVal = ((@max - i*step) - @min) * 255 / (@max - @min) ###########
+            # drawColor = Sketchup::Color.new
+            # drawColor.red = 127 
+            # drawColor.green = colorVal
+            # drawColor.blue = 127
+            drawColor = Sketchup::Color.new(127, colorVal.to_i, 127)
             view.drawing_color = drawColor
             view.draw2d(GL_QUADS, pts)
         }
     end
     
 end # class
+
+## this class represents the dialog used for interaction with the analysis results
+class ResultsDialog
+
+    def initialize()
+        
+        ## set frame characteristics
+        title = "Results Controls"
+        position = Wx::DEFAULT_POSITION
+        size = Wx::Size.new(200,200)
+        style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
+        model = Sketchup.active_model
+        layer = model.active_layer
+        min = layer.get_attribute("layerData", "resMinMax")[0]
+        max = layer.get_attribute("layerData", "resMinMax")[1]
+        minR = (min * 1000).round.to_f / 1000
+        maxR = (max * 1000).round.to_f / 1000
+        
+        ## create frame and panel
+        frame = Wx::Frame.new(WxSU.app.sketchup_frame, -1, title, position, size, style)
+        panel = Wx::Panel.new(frame, -1, Wx::DEFAULT_POSITION, size)
+        ## add functionality
+        
+        ## max/min rescaling
+		maxTCPos = Wx::Point.new(10,10)
+		minTCPos = Wx::Point.new(10,35)
+		maxMinTCSize = Wx::Size.new(50,20)
+		maxTC = Wx::TextCtrl.new(panel, -1, maxR.to_s, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
+		minTC = Wx::TextCtrl.new(panel, -1, minR.to_s, minTCPos, maxMinTCSize, Wx::TE_LEFT)
+		
+		maxSTPos = Wx::Point.new(65,12)
+		minSTPos = Wx::Point.new(65,37)
+		maxST = Wx::StaticText.new(panel, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
+		minST = Wx::StaticText.new(panel, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
+		
+		maxMinBPos = Wx::Point.new(110,34)
+		maxMinBSize = Wx::Size.new(70,20)
+		maxMinB = Wx::Button.new(panel, -1, 'redraw', maxMinBPos, maxMinBSize, Wx::BU_BOTTOM)
+		#evt_button(maxMinB.get_id()) {|e| on_redraw(e)}
+		evt_button(maxMinB) {puts "PUSHED!"}
+		
+		frame.show
+    end
+    
+    ## method to run when redraw button in Results Options palette is pressed;
+    ## redraws results grid on selected layer according to max and min values entered
+    ## in Results Options palette
+    def on_redraw
+        puts "HELLO!"
+    end
+    
+end # class
+
+def showMenu
+    rd = ResultsDialog.new
+end
