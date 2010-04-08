@@ -9,4 +9,4 @@ Things that it would be nice change or add at some point:
   # add something to preferences dialog to specify DAYSIM bin directory and material directory
   # make it so that su2rad and su2ds can live together in plugins directory (which currently doesn't seem to be the case)
   # figure out a way to export images with the results scale included in the image (right now screen captures are pretty much the only way to get this info out)
-  # results controls option: show node values, improve rescaling speed
+  # results palette: add option for displaying node values, improve rescaling speed, make box a little prettier (add some separators?)
