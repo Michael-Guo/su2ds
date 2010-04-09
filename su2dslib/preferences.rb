@@ -31,7 +31,7 @@ def loadPreferences(interactive=0)
     if File.exists?(configPath)
         printf "++ found preferences file '#{configPath}'\n"
         begin
-            load configPath
+            load configPath ## this "runs" the file configPath points at, which consists of global vars being set
             printf "++ applied preferences from '#{configPath}'\n"
         rescue => e 
             printf "-- ERROR reading preferences file '#{configPath}'!\n"
@@ -56,7 +56,7 @@ end
 
 class PreferencesDialog
 
-    def initialize(filepath='')
+    def initialize(filepath='') ## filepath pretty much always going to be nil in normal usage
 
         @filepath = File.expand_path('config.rb', File.dirname(__FILE__))
         
@@ -73,8 +73,10 @@ class PreferencesDialog
             updateFromFile(filepath)
         end
     end
-
-    def updateFromFile(filepath)
+    
+    ## runs config.rb, which assigns stored preference values to global variables,
+    ## and then assigns global variable values to instance variables
+    def updateFromFile(filepath) 
         if File.exists?(filepath)
             begin
                 load filepath
@@ -105,21 +107,15 @@ class PreferencesDialog
     end
     
     def showDialog
-        updateFromFile(@filepath)
+        updateFromFile(@filepath) ## updates settings from config.rb
         a = (-12..12).to_a
         a.collect! { |i| "%.1f" % i }
         utcs = 'nil|' + a.join("|")
-        #prompts = [   'log level', 'export mode',  'global coords', 'triangulate faces',     'show options']   ## modified for su2ds
         prompts = [   'log level',  'triangulate faces']
-        #values  = [     @loglevel,         @mode,      @makeglobal,   @triangulate.to_s,  @showradopts.to_s]
         values  = [     @loglevel,      @triangulate.to_s]
-        #choices = [     '0|1|2|3',         modes,     'true|false',        'true|false',       'true|false']
         choices = [     '0|1|2|3',     'true|false']
-        #prompts += [  'export all views', 'unit', 'replmarks path', 'supportdir',         'update library',  'system clock offset']
         prompts += [  'unit', 'supportdir',         'update library']
-        #values  += [@exportallviews.to_s,  @unit,       @replmarks,  @supportdir, @build_material_lib.to_s,       @utc_offset.to_s]
         values  += [@unit,  @supportdir, @build_material_lib.to_s]
-        #choices += [        'true|false',     '',               '',           '',             'true|false',                   utcs]
         choices += [        '',           '',             'true|false']
         
         dlg = UI.inputbox(prompts, values, choices, 'preferences')

@@ -164,7 +164,10 @@ def preferencesDialog
     pd.showDialog()
 end
 
-
+def showResultsPalette
+    rd = ResultsPalette.new
+    rd.show
+end    
 
 def runTest
     sky = RadianceSky.new()
@@ -186,6 +189,7 @@ else
             radmenu.add_item("Export DAYSIM header file") { startExport }
             radmenu.add_separator
             radmenu.add_item("Import DAYSIM results") { startImport }
+            radmenu.add_item("Show results palette") {showResultsPalette}
             radmenu.add_separator
             matmenu = radmenu.add_submenu("Material")
             matmenu.add_item("count conflicts") { countConflicts }
