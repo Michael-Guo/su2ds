@@ -13,6 +13,7 @@ class ResultsGrid < ExportBase
         @spacing = 0 ## analysis grid spacing
         @minV = 0    ## minimum value of results
         @maxV = 0    ## maximum value of results
+        @aveV = 0    ## average value of results
         @model = Sketchup.active_model
         @resLayerName = getLayerName('results') ## get unique layer name for results layer
         @resLayer = @model.layers.add(@resLayerName)
@@ -69,14 +70,18 @@ class ResultsGrid < ExportBase
         }
         x = []
         v = []
-        # calculate @minV and @maxV
+        sum = 0
+        # calculate @minV, @maxV, and @aveV
         @lines.collect { |l|
             v.push(l[3])
+            sum += l[3]
         }
         v.sort!
         @minV = v[0]
         @maxV = v[v.length - 1]
+        @aveV = sum / v.length
         @resLayer.set_attribute("layerData", "resMinMax", [@minV, @maxV]) ## stored for scale generation and adjustment
+        @resLayer.set_attribute("layerData", "resAve", @aveV)
         # calculate spacing
         @xLines.each_index { |i|
             if @xLines[i][0] != @xLines[i+1][0]
@@ -211,14 +216,14 @@ end # class
 ## this class is the observer that calls results scale utilies when current layer is changed
 class ResultsScaleObserver < Sketchup::LayersObserver
     
-    ## activate ResultsScale and RDFrame if "results" layer selected; if "results" layer active and 
+    ## activate ResultsScale and ResultsPalette if "results" layer selected; if "results" layer active and 
     ## "non-results" layer selected, activates nil tool to hide results scale; does nothing if switching 
     ## between "non-results" layers
     def onCurrentLayerChanged(layers, activeLayer)
         if activeLayer.get_attribute("layerData", "results")
             rs = ResultsScale.new
             Sketchup.active_model.select_tool(rs)
-            rd = RDFrame.new
+            rd = ResultsPalette.new
             rd.show
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
@@ -240,41 +245,61 @@ class ResultsScale
         ## get current layer name, and results min and maxes stored within layer
         @model = Sketchup.active_model
         @layer = @model.active_layer
-        @projectName = @model.get_attribute("modelData", "projectName", "Unnamed Project")
-        @layerName = @layer.name
-        @min = @layer.get_attribute("layerData", "resMinMax")[0]
-        @max = @layer.get_attribute("layerData", "resMinMax")[1]
-        @minR = (@min * 100).round.to_f / 100
-        @maxR = (@max * 100).round.to_f / 100
+        ## if current layer is a results layer, read attributes and set @draw to true
+        ## the point of this is to prevent errors if the scale is told to draw when a 
+        ## non-results layer is selected
+        if @layer.get_attribute("layerData", "results") 
+            @projectName = @model.get_attribute("modelData", "projectName", "Unnamed Project")
+            @layerName = @layer.name
+            @min = @layer.get_attribute("layerData", "resMinMax")[0]
+            @max = @layer.get_attribute("layerData", "resMinMax")[1]
+            @ave = @layer.get_attribute("layerData", "resAve")
+            @draw = true
+        else
+            @draw = false
+        end
     end
     
     def draw(view)
         
-        ## draw text
-        view.draw_text([15, 15, 0], @projectName.upcase)
-        view.draw_text([15, 28, 0], @layerName)
-        view.draw_text([65, 46, 0], @maxR.to_s)
-        view.draw_text([65, 136, 0], @minR.to_s)
+        if @draw
         
-        # draw scale
-        (0..9).to_a.each { |i|
-            pt1 = [15, (47 + i*10), 0]
-            pt2 = [60, (47 + i*10), 0]
-            pt3 = [60, (57 + i*10), 0]
-            pt4 = [15, (57 + i*10), 0]
-            pts = [pt1, pt2, pt3, pt4]
-            step = (@max - @min) / 9
-            colorVal = ((@max - i*step) - @min) * 255 / (@max - @min)
-            drawColor = Sketchup::Color.new(127, colorVal.to_i, 127)
-            view.drawing_color = drawColor
-            view.draw2d(GL_QUADS, pts)
-        }
+            ## draw text
+            view.draw_text([15, 15, 0], @projectName.upcase)
+            view.draw_text([15, 28, 0], @layerName)
+            view.draw_text([65, 46, 0], "%3.1f" % @max)
+            view.draw_text([65, 136, 0],"%3.1f" % @min)
+        
+            ## draw scale
+            (0..9).to_a.each { |i|
+                pt1 = [15, (47 + i*10), 0]
+                pt2 = [60, (47 + i*10), 0]
+                pt3 = [60, (57 + i*10), 0]
+                pt4 = [15, (57 + i*10), 0]
+                pts = [pt1, pt2, pt3, pt4]
+                step = (@max - @min) / 9
+                colorVal = ((@max - i*step) - @min) * 255 / (@max - @min)
+                drawColor = Sketchup::Color.new(127, colorVal.to_i, 127)
+                view.drawing_color = drawColor
+                view.draw2d(GL_QUADS, pts)
+            }
+        
+            ## draw average value
+            if $dab != nil
+                if $dab.get_value()
+                    view.draw_text([15, 154, 0], 'average:')
+                    view.draw_text([65, 154, 0], "%3.1f" % @ave)
+                end
+            end
+        end
     end
     
 end # class
 
-## this class represents the window "frame" for the the results dialog
-class RDFrame < Wx::Frame
+## this class represents the window "frame" for the the Results Palette
+## the Results Palette is meant to control options for the display of simulation
+## results imported from DAYSIM
+class ResultsPalette < Wx::Frame
 
     def initialize()
         
@@ -283,7 +308,7 @@ class RDFrame < Wx::Frame
         #position = Wx::DEFAULT_POSITION
         screenSize = Wx::get_display_size()
         position = Wx::Point.new((screenSize.get_width() - 300), 30)
-        size = Wx::Size.new(190,200)
+        size = Wx::Size.new(190,145)
         style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
         
         ## create frame and panel
@@ -294,7 +319,7 @@ class RDFrame < Wx::Frame
     end
 end
 
-## this class represents the "panel" for the Results Dialog, which lives within
+## this class represents the "panel" for the Results Palette, which lives within
 ## the frame defined above, and contains the buttons and dialogs
 class RDPanel < Wx::Panel
     
@@ -302,10 +327,13 @@ class RDPanel < Wx::Panel
         
         @model = Sketchup.active_model
         @layer = @model.active_layer
-        @min = @layer.get_attribute("layerData", "resMinMax")[0]
-        @max = @layer.get_attribute("layerData", "resMinMax")[1]
-        minR = (@min * 1000).round.to_f / 1000
-        maxR = (@max * 1000).round.to_f / 1000
+        begin ## note: used begin/rescue structure so that "show results palette" option could be added to menu
+            @min = @layer.get_attribute("layerData", "resMinMax")[0]
+            @max = @layer.get_attribute("layerData", "resMinMax")[1]
+        rescue
+            @min = 0
+            @max = 0
+        end
         
         ## initialize
         super(parent, id, position, size)
@@ -314,21 +342,27 @@ class RDPanel < Wx::Panel
 		maxTCPos = Wx::Point.new(10,10)
 		minTCPos = Wx::Point.new(10,35)
 		maxMinTCSize = Wx::Size.new(50,20)
-		@maxTC = Wx::TextCtrl.new(self, -1, maxR.to_s, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
-		@minTC = Wx::TextCtrl.new(self, -1, minR.to_s, minTCPos, maxMinTCSize, Wx::TE_LEFT)
+		@maxTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @max, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
+		@minTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @min, minTCPos, maxMinTCSize, Wx::TE_LEFT)
 		
 		maxSTPos = Wx::Point.new(65,12)
 		minSTPos = Wx::Point.new(65,37)
 		maxST = Wx::StaticText.new(self, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
 		minST = Wx::StaticText.new(self, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
 		
-		maxMinBPos = Wx::Point.new(110,34)
-		maxMinBSize = Wx::Size.new(70,20)
-		maxMinB = Wx::Button.new(self, -1, 'redraw', maxMinBPos, maxMinBSize, Wx::BU_BOTTOM)
-		evt_button(maxMinB.get_id()) {|e| on_redraw(e)}
+		mmbPos = Wx::Point.new(110,34)
+		mmbSize = Wx::Size.new(70,20)
+		mmb = Wx::Button.new(self, -1, 'redraw', mmbPos, mmbSize, Wx::BU_BOTTOM)
+		evt_button(mmb.get_id()) {|e| on_redraw(e)}
+		
+		## "display average" option
+		dabPos = Wx::Point.new(10,65)
+		dabSize = Wx::Size.new(130,20)
+		$dab = Wx::ToggleButton.new(self, -1, 'display average value', dabPos, dabSize)
+		evt_togglebutton($dab.get_id()) { |e| on_toggle_average(e)}
 		
 		## "show scale" button
-		ssbPos = Wx::Point.new(10,65)
+		ssbPos = Wx::Point.new(10,96)
 		ssbSize = Wx::Size.new(110,20)
 		ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
 		evt_button(ssb.get_id()) { |e| on_show_scale(e)}
@@ -351,7 +385,7 @@ class RDPanel < Wx::Panel
             ## ensure active layer is still a results layer; if so proceed
             if @layer.get_attribute("layerData", "results")
             
-                ## reset layer max and min as per values entered in Results Dialog
+                ## reset layer max and min as per values entered in Results Palette
                 newMin = @minTC.get_value().to_f
                 newMax = @maxTC.get_value().to_f
                 @layer.set_attribute("layerData", "resMinMax", [newMin, newMax])
@@ -396,12 +430,20 @@ class RDPanel < Wx::Panel
         end
     end
     
-    ## method for showing scale (intended for when results dialog box is up, but another tool has been
+    ## method for when "display average" buton is toggled; although the actual display of the average is
+    ## controlled within ResultsScale, this refreshes the display so the user sees the change immediately
+    def on_toggle_average(e)
+        @model.active_view.refresh
+    end
+    
+    ## method for showing scale (intended for when Results Pallete is up, but another tool has been
     ## selected so the results scale is no longer visible)
     def on_show_scale(e)
-        rs = ResultsScale.new
-        @model.select_tool(rs)
-        @model.active_view.refresh ## refresh view
+        if @model.active_layer.get_attribute("layerData", "results")
+            rs = ResultsScale.new
+            @model.select_tool(rs)
+            @model.active_view.refresh ## refresh view
+        end
     end            
         
     ## method for exporting image; not yet implemented; need to figure out way to include results scale
@@ -413,6 +455,6 @@ class RDPanel < Wx::Panel
 end # class
 
 def showMenu
-    rd = RDFrame.new
+    rd = ResultsPalette.new
     rd.show
 end
