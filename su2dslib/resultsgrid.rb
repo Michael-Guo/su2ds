@@ -211,18 +211,20 @@ end # class
 ## this class is the observer that calls results scale utilies when current layer is changed
 class ResultsScaleObserver < Sketchup::LayersObserver
     
-    ## activate ResultsScale if "results" layer selected; if "results" layer active and "non-results"
-    ## layer selected, activates nil tool to hide results scale; does nothing if switching between
-    ## "non-results" layers
+    ## activate ResultsScale and RDFrame if "results" layer selected; if "results" layer active and 
+    ## "non-results" layer selected, activates nil tool to hide results scale; does nothing if switching 
+    ## between "non-results" layers
     def onCurrentLayerChanged(layers, activeLayer)
         if activeLayer.get_attribute("layerData", "results")
-            @rs = ResultsScale.new
-            Sketchup.active_model.select_tool(@rs)
+            rs = ResultsScale.new
+            Sketchup.active_model.select_tool(rs)
+            rd = RDFrame.new
+            rd.show
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
                                                                   ## seem to be a way to get the previously selected
-                                                                  ## layer, OR obtain the current tool (pop_tool) returning
-                                                                  ## TrueClass for some reason...
+                                                                  ## layer, OR obtain the current tool (pop_tool returning
+                                                                  ## TrueClass for some reason...)
             Sketchup.active_model.select_tool(nil)
         end     
     end
@@ -278,8 +280,10 @@ class RDFrame < Wx::Frame
         
         ## set frame characteristics
         title = "Results Controls"
-        position = Wx::DEFAULT_POSITION
-        size = Wx::Size.new(200,200)
+        #position = Wx::DEFAULT_POSITION
+        screenSize = Wx::get_display_size()
+        position = Wx::Point.new((screenSize.get_width() - 300), 30)
+        size = Wx::Size.new(190,200)
         style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
         
         ## create frame and panel
@@ -323,6 +327,12 @@ class RDPanel < Wx::Panel
 		maxMinB = Wx::Button.new(self, -1, 'redraw', maxMinBPos, maxMinBSize, Wx::BU_BOTTOM)
 		evt_button(maxMinB.get_id()) {|e| on_redraw(e)}
 		
+		## "show scale" button
+		ssbPos = Wx::Point.new(10,65)
+		ssbSize = Wx::Size.new(110,20)
+		ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
+		evt_button(ssb.get_id()) { |e| on_show_scale(e)}
+		
 		## export image ## one day -- haven't got this figured out quite yet
         # exBPos = Wx::Point.new(10,65)
         # exBSize = Wx::Size.new(120,20)
@@ -334,23 +344,21 @@ class RDPanel < Wx::Panel
     ## redraws results grid on selected layer according to max and min values entered
     ## in Results Options palette
     def on_redraw(e) ## NOTE: for some reason, you need to pass the argument, even if it isn't used
-        $timelog = [] #######
         begin
             @layer = @model.active_layer
-            #@model.start_operation("task", true) ## suppress UI updating, for speed
+            @model.start_operation("task", true) ## suppress UI updating, for speed
             
             ## ensure active layer is still a results layer; if so proceed
             if @layer.get_attribute("layerData", "results")
             
-                # reset layer max and min as per values entered in Results Dialog
+                ## reset layer max and min as per values entered in Results Dialog
                 newMin = @minTC.get_value().to_f
                 newMax = @maxTC.get_value().to_f
                 @layer.set_attribute("layerData", "resMinMax", [newMin, newMax])
                 @min = newMin
                 @max = newMax
                 
-                $timelog.push("#{Time.now} - starting interations ") #########
-                # iterate through model entities to get to results faces that need to be recoloured
+                ## iterate through model entities to get to results faces that need to be recoloured
                 entities = @model.entities
                 entities.each { |e|
                     if (e.layer == @layer) && (e.class == Sketchup::Group)
@@ -361,16 +369,14 @@ class RDPanel < Wx::Panel
                         }
                     end
                 }
+                
+                ## reselect ResultsScale as current tool to refresh max and min
+                rs = ResultsScale.new
+                Sketchup.active_model.select_tool(rs)
+                
+                @model.start_operation("task", false) ## turn UI updating back on
+                @model.active_view.refresh ## refresh view
             end
-            
-            $timelog.push("#{Time.now} - iterations complete ") ########
-            #@model.start_operation("task", false) ## turn UI updating back on
-            #@model.active_view.refresh ## refresh view
-            File.open("/Users/josh/Desktop/time.txt", "w") do |f| #######
-                $timelog.each { |l|                              #######
-                    f.puts l                                     #######
-                }                                                #######
-            end                                                  #######
         rescue => ex
             puts ex.class
             puts ex
@@ -380,18 +386,23 @@ class RDPanel < Wx::Panel
     
     ## method for recolouring face based on adjusted min and max scale values
     def processFace(f)
-        $timelog.push("#{Time.now} - getting attribute") #######
         val = f.get_attribute("faceData", "value")
         
-        $timelog.push("#{Time.now} - beginning to recolour face") #######
         if val
             colorVal = (val - @min) * 255 / (@max - @min)
             faceCol = Sketchup::Color.new(127, colorVal.to_i, 127)
             f.material = faceCol
-            f.back_material = faceCol
+            f.back_material = f.material
         end
-        $timelog.push("#{Time.now} - face recoloured") #######
     end
+    
+    ## method for showing scale (intended for when results dialog box is up, but another tool has been
+    ## selected so the results scale is no longer visible)
+    def on_show_scale(e)
+        rs = ResultsScale.new
+        @model.select_tool(rs)
+        @model.active_view.refresh ## refresh view
+    end            
         
     ## method for exporting image; not yet implemented; need to figure out way to include results scale
     # def on_export(e)
