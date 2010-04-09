@@ -87,6 +87,8 @@ class RadianceScene < ExportBase
         ud.addOption("triangulate", $TRIANGULATE)
         
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
+            $export_dir = ud.results[0] 
+            $project_name = ud.results[1]
             if not confirmWeatherFile(ud.results[2]) ## added for su2ds; confirms weather file information
                 uimessage('export canceled')
                 return false
@@ -101,13 +103,8 @@ class RadianceScene < ExportBase
                 end
             end
             $TRIANGULATE = ud.results[4]
-            $export_dir = ud.results[0] 
-            $project_name = ud.results[1]
-            if not removeExisting("#{$export_dir}/#{$project_name}")    ## added for su2ds;
-                return false                                            ## moved here so that directory is cleared before
-            end                                                         ## weather file is written
-            createDirectory("#{$export_dir}/#{$project_name}")  ## added for su2ds; doing this here so weather file has somewhere to go 
-
+ 
+            ## note: overwrite confirmation moved to within confirmWeatherFile
         else
             uimessage('export canceled')
             return false
@@ -131,6 +128,13 @@ class RadianceScene < ExportBase
     def confirmWeatherFile(path)
         if path[-3,3] == "wea" ## user has selected .wea file; proceed
             if File.exists?(path)
+                ## confirm overwrite of existing files
+                if not removeExisting("#{$export_dir}/#{$project_name}")    
+                    return false                                            
+                end                                                         
+                createDirectory("#{$export_dir}/#{$project_name}")
+                
+                ## write new files
                 name = File.basename(path)
                 newpath = getFilename("#{name}")
                 FileUtils.cp(path, newpath)
@@ -161,6 +165,13 @@ class RadianceScene < ExportBase
                 message += "file, or 'cancel' to abort header file creation."
                 result = UI.messagebox(message, MB_YESNOCANCEL)
                 if result == 6 ## user wants to convert file
+                    ## confirm overwrite of existing files
+                    if not removeExisting("#{$export_dir}/#{$project_name}")    
+                        return false                                            
+                    end                                                         
+                    createDirectory("#{$export_dir}/#{$project_name}")
+                    
+                    ## write new files
                     if convertEPW(path)
                         $weather_file = "#{File.basename(path)[0..-5]}.wea"
                         uimessage("Weather file #{path} converted.")
