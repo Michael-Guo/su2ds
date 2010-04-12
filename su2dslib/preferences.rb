@@ -24,8 +24,9 @@
 ## defaults
 
 
-
-def loadPreferences(interactive=0)
+## this "runs" the config.rb file, which assignes stored preferences to
+## appropriate global variables
+def loadPreferences(interactive=0) ## this called in su2ds.rb
     ## check if config.rb exists in su2dslib
     configPath = File.expand_path('config.rb', File.dirname(__FILE__))
     if File.exists?(configPath)
@@ -38,7 +39,7 @@ def loadPreferences(interactive=0)
             msg = "-- %s\n\n%s" % [$!.message,e.backtrace.join("\n")]
             printf msg
         end
-    elsif interactive != 0
+    elsif interactive != 0 ## in current su2ds use, interactive will always equal 0
         begin
             f = File.new(configPath, 'w')
             f.write("#\n# config.rb\n#\n")
@@ -55,8 +56,9 @@ end
 
 
 class PreferencesDialog
-
-    def initialize(filepath='') ## filepath pretty much always going to be nil in normal usage
+    
+    ## this only gets called if "preferences" item selected in su menu
+    def initialize(filepath='') ## filepath always going to be nil in normal su2ds usage
 
         @filepath = File.expand_path('config.rb', File.dirname(__FILE__))
         
@@ -65,10 +67,12 @@ class PreferencesDialog
         @unit       = 0.0254                        ## use meters for Radiance scene
         @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'  ## this is mainly used for material stuff
         @build_material_lib = false                 ## update/create material library in file system
-       
+        @daysim_bin_dir = 'C:/DAYSIM/bin_windows'   ## path for DAYSIM binary directory
+        @daysim_mat_dir = 'C:/DAYSIM/materials'     ## path for DAYSIM materials directory
+        
         printf "\n=====\nPreferencesDialog('#{filepath}')\n=====\n"
         
-        if filepath != ''
+        if filepath != '' ## filepath always nil in normal su2ds usage
             filepath = File.expand_path(filepath, File.dirname(__FILE__))
             updateFromFile(filepath)
         end
@@ -94,6 +98,8 @@ class PreferencesDialog
         @unit       = $UNIT
         @supportdir = $SUPPORTDIR
         @build_material_lib = $BUILD_MATERIAL_LIB
+        @daysim_bin_dir = $DAYSIM_BIN_DIR
+        @daysim_mat_dir = $DAYSIM_MAT_DIR
         validate()
     end
 
@@ -106,6 +112,8 @@ class PreferencesDialog
         end
     end
     
+    ## this is the highest level method called when "preferences" option
+    ## is selected in su menu
     def showDialog
         updateFromFile(@filepath) ## updates settings from config.rb
         a = (-12..12).to_a
@@ -117,15 +125,18 @@ class PreferencesDialog
         prompts += [  'unit', 'supportdir',         'update library']
         values  += [@unit,  @supportdir, @build_material_lib.to_s]
         choices += [        '',           '',             'true|false']
+        prompts += [ 'binary path', 'materials path']
+        values  += [@daysim_bin_dir, @daysim_mat_dir]
+        choices += [ '', '']
         
         dlg = UI.inputbox(prompts, values, choices, 'preferences')
-        if not dlg
+        if not dlg ## note: if dlg = nil, 'not dlg' returns true
             printf "preferences dialog.rb canceled\n"
             return 
         else
-            evaluateDialog(dlg) 
-            applySettings()
-            writeValues
+            evaluateDialog(dlg) ## reads results from dlg array and applies to appropriate instance variables
+            applySettings() ## assigns instance variable values to appropriate global variables
+            writeValues ## updates config.rb file
         end
     end
     
@@ -139,7 +150,9 @@ class PreferencesDialog
         end 
         @supportdir = dlg[3]
         @build_material_lib = dlg[4]
-        validate()
+        @daysim_bin_dir = dlg[5]
+        @daysim_mat_dir = dlg[6]
+        validate() ## this just checks @supportdir
     end    
     
     def truefalse(s)
@@ -195,6 +208,8 @@ class PreferencesDialog
         $UNIT       = @unit
         $SUPPORTDIR = @supportdir
         $BUILD_MATERIAL_LIB = @build_material_lib
+        $DAYSIM_BIN_DIR = @daysim_bin_dir
+        $DAYSIM_MAT_DIR = @daysim_mat_dir
     end
     
     def getSettingsText
@@ -203,7 +218,9 @@ class PreferencesDialog
             "$SUPPORTDIR            = '#{$SUPPORTDIR}'",
             "$TRIANGULATE           = #{$TRIANGULATE}",
             "$BUILD_MATERIAL_LIB    = #{$BUILD_MATERIAL_LIB}",
-            "$ZOFFSET               = nil"]
+            "$ZOFFSET               = nil",
+            "$DAYSIM_BIN_DIR        = '#{$DAYSIM_BIN_DIR}'",
+            "$DAYSIM_MAT_DIR        = '#{$DAYSIM_MAT_DIR}'"]
         return l.join("\n")
     end
 end

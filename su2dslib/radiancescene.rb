@@ -230,7 +230,8 @@ class RadianceScene < ExportBase
         begin
             name = File.basename(path)
             newpath = getFilename("#{name}")
-            out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{newpath[0..-5]}.wea`
+            #out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{newpath[0..-5]}.wea`
+            out = `"#{File.dirname(File.expand_path(__FILE__))}/epw2wea" #{path} #{newpath[0..-5]}.wea`
             if $? == 0
                 return true
             else
@@ -248,8 +249,8 @@ class RadianceScene < ExportBase
     def confirmPointsExportOptions
         ## show user dialog for export options
         ud = UserDialog.new() 
-        ud.addOption("points layer", $points_layer)
-        ud.addOption("grid spacing", $point_spacing.to_s)
+        ud.addOption("polygon layer", $points_layer)
+        ud.addOption("spacing (m)", $point_spacing.to_s)
         if ud.show('export options') == true   ## this bit reads the results of the user dialogue
             $points_layer = ud.results[0]
             $point_spacing = ud.results[1].to_f
@@ -339,8 +340,8 @@ class RadianceScene < ExportBase
         text += "#######################\n\n"
         text += "project_name       #{$project_name}\n"
         text += "project_directory  #{$export_dir}\n"
-        text += "bin_directory      C:/DAYSIM/bin_windows\n" ## maybe change code to make this be specified in preferences dialog?
-        text += "material_directory C:/DAYSIM/materials\n"
+        text += "bin_directory      #{$DAYSIM_BIN_DIR}\n"
+        text += "material_directory #{$DAYSIM_MAT_DIR}\n"
         text += "tmp_directory      #{$export_dir}/tmp\n\n"
         text += "#######################\n"
         text += "# site information\n"
