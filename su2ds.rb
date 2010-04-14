@@ -165,8 +165,10 @@ def preferencesDialog
 end
 
 def showResultsPalette
-    rd = ResultsPalette.new
-    rd.show
+    if $rp == nil
+        $rp = ResultsPalette.new
+        $rp.show
+    end
 end    
 
 def runTest
