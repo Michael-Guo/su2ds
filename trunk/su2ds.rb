@@ -142,7 +142,7 @@ end
 #     end
 # end
 
-def startImport
+def startDSImport
     rg = ResultsGrid.new
     if rg.readResults
         rg.drawGrid
@@ -190,7 +190,7 @@ else
             radmenu.add_separator
             radmenu.add_item("Export DAYSIM header file") { startExport }
             radmenu.add_separator
-            radmenu.add_item("Import DAYSIM results") { startImport }
+            radmenu.add_item("Import DAYSIM results") { startDSImport }
             radmenu.add_item("Show results palette") {showResultsPalette}
             radmenu.add_separator
             matmenu = radmenu.add_submenu("Material")
