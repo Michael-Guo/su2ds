@@ -223,8 +223,10 @@ class ResultsScaleObserver < Sketchup::LayersObserver
         if activeLayer.get_attribute("layerData", "results")
             rs = ResultsScale.new
             Sketchup.active_model.select_tool(rs)
-            rd = ResultsPalette.new
-            rd.show
+            if $rp == nil
+                $rp = ResultsPalette.new
+                $rp.show
+            end
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
                                                                   ## seem to be a way to get the previously selected
@@ -313,9 +315,17 @@ class ResultsPalette < Wx::Frame
         
         ## create frame and panel
         super(WxSU.app.sketchup_frame, -1, title, position, size, style)
-        
         panel = RDPanel.new(self, -1, position, size)
-        ## add functionality
+        
+        ## define on_close method (controls window behaviour when 
+        ## "close" button clicked)
+        evt_close { |e| on_close(e) }
+    end
+    
+    ## resets $rd to nil
+    def on_close(e)
+        self.destroy
+        $rp = nil
     end
 end
 
@@ -455,6 +465,8 @@ class RDPanel < Wx::Panel
 end # class
 
 def showMenu
-    rd = ResultsPalette.new
-    rd.show
+    if $rp == nil
+        $rp = ResultsPalette.new
+        $rp.show
+    end
 end
