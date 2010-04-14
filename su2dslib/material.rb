@@ -1,5 +1,6 @@
-require "su2dslib/exportbase.rb"
+#require "su2dslib/exportbase.rb" # not required when SU2DS module used
 
+module SU2DS
 
 class MaterialLibrary < ExportBase  
 
@@ -345,5 +346,5 @@ class MaterialConflicts < ExportBase
     end    
 end
 
-
+end # SU2DS module
 

@@ -1,3 +1,5 @@
+module SU2DS
+
 class UserDialog
     
     attr_reader :results
@@ -48,4 +50,6 @@ class UserDialog
         end
         return true
     end
-end    
+end
+
+end # SU2DS module    

@@ -1,5 +1,7 @@
-require "su2dslib/exportbase.rb"
+#require "su2dslib/exportbase.rb"   ## not required if SU2DS module being used
 require "su2dslib/delauney_mod.rb"
+
+module SU2DS
 
 class NumericImport < ExportBase
     
@@ -239,7 +241,7 @@ class NumericImport < ExportBase
         
 end
 
-
+end # SU2DS module
 
 
 
