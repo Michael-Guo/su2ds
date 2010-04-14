@@ -23,37 +23,38 @@
 
 ## defaults
 
+module SU2DS
 
 ## this "runs" the config.rb file, which assignes stored preferences to
 ## appropriate global variables
-def loadPreferences(interactive=0) ## this called in su2ds.rb
-    ## check if config.rb exists in su2dslib
-    configPath = File.expand_path('config.rb', File.dirname(__FILE__))
-    if File.exists?(configPath)
-        printf "++ found preferences file '#{configPath}'\n"
-        begin
-            load configPath ## this "runs" the file configPath points at, which consists of global vars being set
-            printf "++ applied preferences from '#{configPath}'\n"
-        rescue => e 
-            printf "-- ERROR reading preferences file '#{configPath}'!\n"
-            msg = "-- %s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-            printf msg
-        end
-    elsif interactive != 0 ## in current su2ds use, interactive will always equal 0
-        begin
-            f = File.new(configPath, 'w')
-            f.write("#\n# config.rb\n#\n")
-            f.close()
-            pd = PreferencesDialog.new(configPath)
-            pd.showDialog()
-        rescue => e
-            printf "ERROR creating preferences file '#{configPath}'!\n"
-            printf "Preferences will not be saved.\n"
+class PrefLoader
+    def loadPreferences(interactive=0) ## this called in su2ds.rb
+        ## check if config.rb exists in su2dslib
+        configPath = File.expand_path('config.rb', File.dirname(__FILE__))
+        if File.exists?(configPath)
+            printf "++ found preferences file '#{configPath}'\n"
+            begin
+                load configPath ## this "runs" the file configPath points at, which consists of global vars being set
+                printf "++ applied preferences from '#{configPath}'\n"
+            rescue => e 
+                printf "-- ERROR reading preferences file '#{configPath}'!\n"
+                msg = "-- %s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+                printf msg
+            end
+        elsif interactive != 0 ## in current su2ds use, interactive will always equal 0
+            begin
+                f = File.new(configPath, 'w')
+                f.write("#\n# config.rb\n#\n")
+                f.close()
+                pd = PreferencesDialog.new(configPath)
+                pd.showDialog()
+            rescue => e
+                printf "ERROR creating preferences file '#{configPath}'!\n"
+                printf "Preferences will not be saved.\n"
+            end
         end
     end
-    
-end
-
+end # class
 
 class PreferencesDialog
     
@@ -235,5 +236,5 @@ def preferencesTest
     end 
 end
 
-
+end # SU2DS module
 

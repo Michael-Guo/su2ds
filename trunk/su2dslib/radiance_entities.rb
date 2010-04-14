@@ -1,4 +1,6 @@
-require "su2dslib/exportbase.rb"
+#require "su2dslib/exportbase.rb" not needed if SU2DS module used
+
+module SU2DS
 
 class ObjMesh < ExportBase
 
@@ -502,3 +504,5 @@ class RadiancePolygon < ExportBase
         return [xmin/$UNIT, ymin/$UNIT, xmax/$UNIT, ymax/$UNIT]
     end
 end 
+
+end # SU2DS module

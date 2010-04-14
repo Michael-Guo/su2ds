@@ -1,4 +1,6 @@
 
+module SU2DS
+
 class ExportBase
     
     def append_paths(p,f)
@@ -418,3 +420,5 @@ class ExportBase
         end
     end
 end 
+
+end # SU2DS module

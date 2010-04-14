@@ -1,6 +1,8 @@
-require "su2dslib/exportbase.rb"
-require "su2dslib/location.rb"  ## added for su2ds
-require "su2dslib/fileutils.rb" ## added for su2ds
+#require "su2dslib/exportbase.rb" ## not required if SU2DS module used
+#require "su2dslib/location.rb"  ## 
+require "su2dslib/bin/fileutils.rb"
+
+module SU2DS
 
 class RadianceScene < ExportBase
 
@@ -231,7 +233,7 @@ class RadianceScene < ExportBase
             name = File.basename(path)
             newpath = getFilename("#{name}")
             #out = `#{File.dirname(__FILE__).gsub(/\s/,"\\ ")}/epw2wea #{path} #{newpath[0..-5]}.wea`
-            out = `"#{File.dirname(File.expand_path(__FILE__))}/epw2wea" #{path} #{newpath[0..-5]}.wea`
+            out = `"#{File.dirname(File.expand_path(__FILE__))}/bin/epw2wea" #{path} #{newpath[0..-5]}.wea`
             if $? == 0
                 return true
             else
@@ -435,3 +437,5 @@ class RadianceScene < ExportBase
     end
    
 end
+
+end # SU2DS module

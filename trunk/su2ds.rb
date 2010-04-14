@@ -80,19 +80,20 @@ $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radia
 $ZOFFSET            = nil     
 
 ## try to load configuration from file
-loadPreferences()
+pl = SU2DS::PrefLoader.new
+pl.loadPreferences()
 
 ## add observers
-Sketchup.active_model.layers.add_observer(ResultsScaleObserver.new)
+Sketchup.active_model.layers.add_observer(SU2DS::ResultsScaleObserver.new)
 
 ## define scale matrix for unit conversion
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 
 
-def startExport 
+def startDSExport 
     begin
-        $MatLib = MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
-        rs = RadianceScene.new()
+        $MatLib = SU2DS::MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
+        rs = SU2DS::RadianceScene.new()
         rs.export ## modified for su2ds
     rescue => e 
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
@@ -103,7 +104,7 @@ end
 ## new for su2ds
 def startPointsExport
     begin
-        rs = RadianceScene.new()
+        rs = SU2DS::RadianceScene.new()
         rs.exportPoints
     rescue => e
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
@@ -113,16 +114,16 @@ end
 
 $matConflicts = nil
 
-def countConflicts
+def countDSConflicts
     if $matConflicts == nil
-        $matConflicts = MaterialConflicts.new()
+        $matConflicts = SU2DS::MaterialConflicts.new()
     end
     $matConflicts.count()
 end
 
-def resolveConflicts
+def resolveDSConflicts
     if $matConflicts == nil
-        $matConflicts = MaterialConflicts.new()
+        $matConflicts = SU2DS::MaterialConflicts.new()
     end
     $matConflicts.resolve()
 end
@@ -143,7 +144,7 @@ end
 # end
 
 def startDSImport
-    rg = ResultsGrid.new
+    rg = SU2DS::ResultsGrid.new
     if rg.readResults
         rg.drawGrid
     end
@@ -151,7 +152,7 @@ end
 
 def locationDialog ## added for su2ds
     begin
-        ld = LocationDialog.new()
+        ld = SU2DS::LocationDialog.new()
         ld.show()
     rescue => e 
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
@@ -159,22 +160,17 @@ def locationDialog ## added for su2ds
     end 
 end
 
-def preferencesDialog
-    pd = PreferencesDialog.new()
+def preferencesDialogDS
+    pd = SU2DS::PreferencesDialog.new()
     pd.showDialog()
 end
 
 def showResultsPalette
     if $rp == nil
-        $rp = ResultsPalette.new
+        $rp = SU2DS::ResultsPalette.new
         $rp.show
     end
 end    
-
-def runTest
-    sky = RadianceSky.new()
-    sky.test()
-end
 
 
 if $DEBUG
@@ -188,17 +184,17 @@ else
             radmenu.add_item("Set location") { locationDialog } ## added for su2ds            
             radmenu.add_item("Create sensor point mesh") { startPointsExport }
             radmenu.add_separator
-            radmenu.add_item("Export DAYSIM header file") { startExport }
+            radmenu.add_item("Export DAYSIM header file") { startDSExport }
             radmenu.add_separator
             radmenu.add_item("Import DAYSIM results") { startDSImport }
             radmenu.add_item("Show results palette") {showResultsPalette}
             radmenu.add_separator
             matmenu = radmenu.add_submenu("Material")
-            matmenu.add_item("count conflicts") { countConflicts }
-            matmenu.add_item("resolve conflicts") { resolveConflicts }
+            matmenu.add_item("count conflicts") { countDSConflicts }
+            matmenu.add_item("resolve conflicts") { resolveDSConflicts }
             #importmenu = radmenu.add_submenu("Import")
             #importmenu.add_item("DAYSIM results") { startImport }
-            radmenu.add_item("Preferences") { preferencesDialog() }
+            radmenu.add_item("Preferences") { preferencesDialogDS }
         end
     rescue => e
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]

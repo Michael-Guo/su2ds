@@ -1,5 +1,7 @@
-require "su2dslib/exportbase.rb"
+#require "su2dslib/exportbase.rb" ## not needed if SU2DS module used
 require "wxSU/lib/Startup"
+
+module SU2DS
 
 ## this class imports and displays DAYSIM analysis results
 ## new for su2ds
@@ -501,3 +503,5 @@ def showMenu
         $rp.show
     end
 end
+
+end # SU2DS module
