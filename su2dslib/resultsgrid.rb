@@ -15,32 +15,44 @@ class ResultsGrid < ExportBase
         @maxV = 0    ## maximum value of results
         @aveV = 0    ## average value of results
         @model = Sketchup.active_model
-        @resLayerName = getLayerName('results') ## get unique layer name for results layer
-        @resLayer = @model.layers.add(@resLayerName)
-        @resLayer.set_attribute("layerData", "results", true)
+        # @resLayerName = getLayerName('results') ## get unique layer name for results layer
+        # @resLayer = @model.layers.add(@resLayerName)
+        # @resLayer.set_attribute("layerData", "results", true)
         @entities = @model.entities
-        @resultsGroup = @entities.add_group
-        @resultsGroup.layer = @resLayerName
+        # @resultsGroup = @entities.add_group
+        # @resultsGroup.layer = @resLayerName
         $nameContext = [] ## added for ExportBase.uimessage to work
         $log = [] ## no log implemented at this point; again, justed added for ExportBase.uimessage
     end
     
     ## read and pre-process DAYSIM results
     def readResults 
-        # get file path
+        ## get file path
         path = UI.openpanel("select results file",'','')
         if not path
             uimessage("import cancelled")
             return false
         end
-        # read file
+        ## read file
         f = File.new(path)
         @lines = f.readlines
         f.close
+        ## create results layers and groups
+        makeLayersGroups
+        ## process line data
         cleanLines
         processLines
         return true
     end
+    
+    ## create groups and layers for import
+    def makeLayersGroups
+        @resLayerName = getLayerName('results') ## get unique layer name for results layer
+        @resLayer = @model.layers.add(@resLayerName)
+        @resLayer.set_attribute("layerData", "results", true)
+        @resultsGroup = @entities.add_group
+        @resultsGroup.layer = @resLayerName
+    end 
     
     ## convert numbers to floats, remove comments lines and such
     def cleanLines
@@ -221,11 +233,15 @@ class ResultsScaleObserver < Sketchup::LayersObserver
     ## between "non-results" layers
     def onCurrentLayerChanged(layers, activeLayer)
         if activeLayer.get_attribute("layerData", "results")
-            rs = ResultsScale.new
-            Sketchup.active_model.select_tool(rs)
+            if $rs == nil
+                $rs = ResultsScale.new
+            end
+            Sketchup.active_model.select_tool($rs)
             if $rp == nil
                 $rp = ResultsPalette.new
                 $rp.show
+            else
+                $rp.refresh
             end
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
@@ -315,7 +331,7 @@ class ResultsPalette < Wx::Frame
         
         ## create frame and panel
         super(WxSU.app.sketchup_frame, -1, title, position, size, style)
-        panel = RDPanel.new(self, -1, position, size)
+        @panel = RDPanel.new(self, -1, position, size)
         
         ## define on_close method (controls window behaviour when 
         ## "close" button clicked)
@@ -327,6 +343,11 @@ class ResultsPalette < Wx::Frame
         self.destroy
         $rp = nil
     end
+    
+    # refreshes panel
+    def refresh
+        @panel.refMinMax
+    end
 end
 
 ## this class represents the "panel" for the Results Palette, which lives within
@@ -336,10 +357,10 @@ class RDPanel < Wx::Panel
     def initialize(parent, id, position, size)
         
         @model = Sketchup.active_model
-        @layer = @model.active_layer
+        layer = @model.active_layer
         begin ## note: used begin/rescue structure so that "show results palette" option could be added to menu
-            @min = @layer.get_attribute("layerData", "resMinMax")[0]
-            @max = @layer.get_attribute("layerData", "resMinMax")[1]
+            @min = layer.get_attribute("layerData", "resMinMax")[0]
+            @max = layer.get_attribute("layerData", "resMinMax")[1]
         rescue
             @min = 0
             @max = 0
@@ -389,23 +410,21 @@ class RDPanel < Wx::Panel
     ## in Results Options palette
     def on_redraw(e) ## NOTE: for some reason, you need to pass the argument, even if it isn't used
         begin
-            @layer = @model.active_layer
+            layer = @model.active_layer
             @model.start_operation("task", true) ## suppress UI updating, for speed
-            
             ## ensure active layer is still a results layer; if so proceed
-            if @layer.get_attribute("layerData", "results")
-            
+            if layer.get_attribute("layerData", "results")
                 ## reset layer max and min as per values entered in Results Palette
                 newMin = @minTC.get_value().to_f
                 newMax = @maxTC.get_value().to_f
-                @layer.set_attribute("layerData", "resMinMax", [newMin, newMax])
+                layer.set_attribute("layerData", "resMinMax", [newMin, newMax])
                 @min = newMin
                 @max = newMax
                 
                 ## iterate through model entities to get to results faces that need to be recoloured
                 entities = @model.entities
                 entities.each { |e|
-                    if (e.layer == @layer) && (e.class == Sketchup::Group)
+                    if (e.layer == layer) && (e.class == Sketchup::Group)
                         e.entities.each { |f|
                             if f.class == Sketchup::Face
                                 processFace(f)
@@ -415,8 +434,10 @@ class RDPanel < Wx::Panel
                 }
                 
                 ## reselect ResultsScale as current tool to refresh max and min
-                rs = ResultsScale.new
-                Sketchup.active_model.select_tool(rs)
+                if $rs == nil
+                    $rs == ResultsScale.new
+                end
+                Sketchup.active_model.select_tool($rs)
                 
                 @model.start_operation("task", false) ## turn UI updating back on
                 @model.active_view.refresh ## refresh view
@@ -450,11 +471,21 @@ class RDPanel < Wx::Panel
     ## selected so the results scale is no longer visible)
     def on_show_scale(e)
         if @model.active_layer.get_attribute("layerData", "results")
-            rs = ResultsScale.new
-            @model.select_tool(rs)
+            if $rs == nil
+                $rs = ResultsScale.new
+            end
+            @model.select_tool($rs)
             @model.active_view.refresh ## refresh view
         end
     end            
+    
+    ## refreshes panel min and max
+    def refMinMax
+        min = @model.active_layer.get_attribute("layerData", "resMinMax")[0]
+        max = @model.active_layer.get_attribute("layerData", "resMinMax")[1]
+        @minTC.set_value("%3.1f" % min)
+        @maxTC.set_value("%3.1f" % max)
+    end
         
     ## method for exporting image; not yet implemented; need to figure out way to include results scale
     # def on_export(e)
