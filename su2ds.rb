@@ -74,7 +74,11 @@ end
 $BUILD_MATERIAL_LIB = false  
 $LOGLEVEL           = 0                ## don't report details
 $RAD                = ''
-$SUPPORTDIR         = '/Library/Application Support/Google Sketchup 7/Sketchup'
+if $OS == 'WIN'
+    $SUPPORTDIR = 'C:/Program Files/Google/Google SketchUp 7'
+else
+    $SUPPORTDIR = '/Library/Application Support/Google Sketchup 7/Sketchup'
+end
 $TRIANGULATE        = false    
 $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radiance)
 $ZOFFSET            = nil     

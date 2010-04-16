@@ -29,7 +29,7 @@ class MaterialLibrary < ExportBase
             filename = File.split(path)[1]
             matname = filename[0,filename.length-4]
             @sketchup_materials[matname] = path
-            radname = path.sub('.skm', '.rad')
+            radname = path.sub(/\.skm/, '.rad')
             if File.exists?(radname)  ## checks Sketchup materials directory for radiance-format version of each materials file
                 uimessage("  material file '%s' found" % radname, 3)
                 begin
