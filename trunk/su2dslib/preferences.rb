@@ -66,7 +66,11 @@ class PreferencesDialog
         @loglevel   = 0                             ## level of report messages
         @triangulate = false                        ## export faces as triangles (should always work)
         @unit       = 0.0254                        ## use meters for Radiance scene
-        @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'  ## this is mainly used for material stuff
+        if $OS == 'WIN'
+            @supportdir = 'C:/Program Files/Google/Google SketchUp 7'
+        else
+            @supportdir = '/Library/Application Support/Google Sketchup 7/Sketchup'  ## this is mainly used for material stuff
+        end
         @build_material_lib = false                 ## update/create material library in file system
         @daysim_bin_dir = 'C:/DAYSIM/bin_windows'   ## path for DAYSIM binary directory
         @daysim_mat_dir = 'C:/DAYSIM/materials'     ## path for DAYSIM materials directory
