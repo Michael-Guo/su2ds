@@ -82,6 +82,9 @@ end
 $TRIANGULATE        = false    
 $UNIT               = 0.0254           ## inch (SU native unit) to meters (Radiance)
 $ZOFFSET            = nil     
+$DAYSIM_BIN_DIR     = 'C:/DAYSIM/bin_windows'
+$DAYSIM_MAT_DIR     = 'C:/DAYSIM/materials'
+
 
 ## try to load configuration from file
 pl = SU2DS::PrefLoader.new
