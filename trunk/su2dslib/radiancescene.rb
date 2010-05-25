@@ -293,6 +293,7 @@ class RadianceScene < ExportBase
         $nameContext.pop()
         $inComponent.pop()
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
+        Sketchup.active_model.set_attribute("modelData", "exportDir", $export_dir) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "weatherFile", $weather_file_path) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
@@ -341,10 +342,10 @@ class RadianceScene < ExportBase
         text += "# created by su2ds at #{Time.now.asctime}\n"
         text += "#######################\n\n"
         text += "project_name       #{$project_name}\n"
-        text += "project_directory  #{$export_dir}\n"
-        text += "bin_directory      #{$DAYSIM_BIN_DIR}\n"
-        text += "material_directory #{$DAYSIM_MAT_DIR}\n"
-        text += "tmp_directory      #{$export_dir}/tmp\n\n"
+        text += "project_directory  #{$export_dir}\\\n"
+        text += "bin_directory      #{$DAYSIM_BIN_DIR}\\\n"
+        text += "material_directory #{$DAYSIM_MAT_DIR}\\\n"
+        text += "tmp_directory      #{$export_dir}\\tmp\\\n\n"
         text += "#######################\n"
         text += "# site information\n"
         text += "#######################\n"

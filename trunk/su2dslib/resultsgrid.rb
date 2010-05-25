@@ -30,13 +30,18 @@ class ResultsGrid < ExportBase
     ## read and pre-process DAYSIM results
     def readResults 
         ## get file path
-        path = UI.openpanel("select results file",'','')
-        if not path
+        resPath = "#{@model.get_attribute("modelData", "exportDir")}\\#{@model.get_attribute("modelData", "projectName")}\\res\\"
+        begin
+            @path = UI.openpanel("select results file", resPath, "*.DA")
+        rescue
+            @path = UI.openpanel("select results file",'','')
+        end
+        if not @path
             uimessage("import cancelled")
             return false
         end
         ## read file
-        f = File.new(path)
+        f = File.new(@path)
         @lines = f.readlines
         f.close
         ## create results layers and groups
@@ -45,6 +50,22 @@ class ResultsGrid < ExportBase
         cleanLines
         processLines
         return true
+    end
+    
+    ## check header file for scene rotation angle (if any)
+    def rotCheck
+        
+        rotRadName = "#{File.basename(@path).split(/\./)[0]}.rad.rotated.rad"
+        rotRadPath = "#{File.expand_path("./..", File.dirname(@path))}/#{rotRadName}"
+        if File.exists?(rotRadPath)
+            f = File.new(rotRadPath)
+            lines = f.readlines
+            f.close
+            @rotation = lines[0].split[-1].strip.to_f
+            return true
+        else
+            return false
+        end
     end
     
     ## create groups and layers for import
@@ -77,6 +98,10 @@ class ResultsGrid < ExportBase
     
     ## calculate @xLines, @yLines, @spacing, @minV, @maxV
     def processLines
+        # rotate points if necessary
+        if rotCheck
+            rotLines
+        end
         # create @xLines and @yLines
         @xLines = @lines.sort
         @yLines = @lines.sort { |x,y|
@@ -98,7 +123,7 @@ class ResultsGrid < ExportBase
         @resLayer.set_attribute("layerData", "resAve", @aveV)
         # calculate spacing
         @xLines.each_index { |i|
-            if @xLines[i][0] != @xLines[i+1][0]
+            if (@xLines[i][0] * 1000).round != (@xLines[i+1][0] * 1000).round
                 if i == (@xLines.length - 1)
                     uimessage("improperly formatted grid; grid spacing could not be calculated")
                     break
@@ -108,6 +133,25 @@ class ResultsGrid < ExportBase
             else
                 next
             end
+        }
+    end
+    
+    ## rotates results grids (needed for when importing results from a model rotated
+    ## by modifying the north angle; results need to be brought back to model coordinates)
+    def rotLines
+        # create Transformation
+        origin = [0,0,0]
+        axis = Geom::Vector3d.new(0,0,1)
+        angle = -@rotation * Math::PI / 180
+        rot = Geom::Transformation.rotation(origin, axis, angle)
+        
+        # rotate points
+        @lines.each { |l|
+            pt = [l[0]/$UNIT, l[1]/$UNIT, l[2]/$UNIT]
+            pt.transform!(rot)
+            l[0] = (pt.x.to_f * $UNIT * 1000).round.to_f / 1000
+            l[1] = (pt.y.to_f * $UNIT * 1000).round.to_f / 1000
+            l[2] = (pt.z.to_f * $UNIT * 1000).round.to_f / 1000
         }
     end
     
@@ -123,18 +167,17 @@ class ResultsGrid < ExportBase
     
     ## draw coloured grid representing results
     def drawGrid
-        
         hideResLayers ## hides any results layers that are visible
         @model.start_operation("task", true) ## suppress UI updating, for speed
         
         # create "north-south" grid lines
         #t = Time.now ## for benchmarking
-        @xLines.each_index { |i|
+        @xLines.each_index { |i|    
             if i == (@xLines.length - 1)
                 next
             end
             # check if next point on same "north-south" line
-            if @xLines[i][0] == @xLines[i+1][0]
+            if (@xLines[i][0] * 1000).round == (@xLines[i+1][0] * 1000).round
                 # check if next point spaced at @spacing
                 if ((@xLines[i][1] + @spacing) * 1000).round == (@xLines[i+1][1] * 1000).round
                     # check if z-coordinate equal
@@ -154,7 +197,7 @@ class ResultsGrid < ExportBase
                 next
             end
             # check if next point on same "east-west" line
-            if @yLines[i][1] == @yLines[i+1][1]
+            if (@yLines[i][1] * 1000).round == (@yLines[i+1][1] * 1000).round
                 # check if next point spaced at @spacing
                 if ((@yLines[i][0] + @spacing) * 1000).round == (@yLines[i+1][0] * 1000).round
                     # check if z-coordinate equal
@@ -216,7 +259,11 @@ class ResultsGrid < ExportBase
     
     ## set Face color
     def setColor(f, val)
-        colorVal = (val - @minV) * 255 / (@maxV - @minV)
+        if @maxV != @minV
+            colorVal = (val - @minV) * 255 / (@maxV - @minV)
+        else
+            colorVal = 255/2.to_i
+        end
         faceCol = Sketchup::Color.new
         faceCol.red = 127
         faceCol.blue = 127

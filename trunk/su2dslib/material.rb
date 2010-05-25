@@ -37,7 +37,7 @@ class MaterialLibrary < ExportBase
                     text = f.read()
                     f.close()
                     text = text.strip()
-                    text = "## material def from file: '%s'\n%s" % [radname, text]
+                    text = "\n## material def from file: '%s'\n%s" % [radname, text]
                     @radiance_descriptions[matname] = text
                 rescue
                     uimessage("Error reading Radiance material description from '#{radname}'")
