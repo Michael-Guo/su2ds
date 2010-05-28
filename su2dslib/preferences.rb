@@ -63,6 +63,7 @@ class PreferencesDialog
 
         @filepath = File.expand_path('config.rb', File.dirname(__FILE__))
         
+        @ds_version = '2.1'                         ## Daysim version
         @loglevel   = 0                             ## level of report messages
         @triangulate = false                        ## export faces as triangles (should always work)
         @unit       = 0.0254                        ## use meters for Radiance scene
@@ -98,6 +99,7 @@ class PreferencesDialog
             end
         end
         ## now all values are in global vars
+        @ds_version = $DS_VERSION
         @loglevel   = $LOGLEVEL
         @triangulate = $TRIANGULATE
         @unit       = $UNIT
@@ -124,9 +126,9 @@ class PreferencesDialog
         a = (-12..12).to_a
         a.collect! { |i| "%.1f" % i }
         utcs = 'nil|' + a.join("|")
-        prompts = [   'log level',  'triangulate faces']
-        values  = [     @loglevel,      @triangulate.to_s]
-        choices = [     '0|1|2|3',     'true|false']
+        prompts = [   'Daysim version', 'log level',  'triangulate faces']
+        values  = [     @ds_version, @loglevel,      @triangulate.to_s]
+        choices = [     '2.1|3.0', '0|1|2|3',     'true|false']
         prompts += [  'unit', 'supportdir',         'update library']
         values  += [@unit,  @supportdir, @build_material_lib.to_s]
         choices += [        '',           '',             'true|false']
@@ -146,17 +148,18 @@ class PreferencesDialog
     end
     
     def evaluateDialog(dlg)
-        @loglevel    = dlg[0].to_i
-        @triangulate = truefalse(dlg[1])
+        @ds_version  = dlg[0].to_s
+        @loglevel    = dlg[1].to_i
+        @triangulate = truefalse(dlg[2])
         begin
-            @unit = dlg[2].to_f
+            @unit = dlg[3].to_f
         rescue
-            printf "unit setting not a number('#{dlg[2]}') => ignored\n"
+            printf "unit setting not a number('#{dlg[3]}') => ignored\n"
         end 
-        @supportdir = dlg[3]
-        @build_material_lib = dlg[4]
-        @daysim_bin_dir = dlg[5]
-        @daysim_mat_dir = dlg[6]
+        @supportdir = dlg[4]
+        @build_material_lib = dlg[5]
+        @daysim_bin_dir = dlg[6]
+        @daysim_mat_dir = dlg[7]
         validate() ## this just checks @supportdir
     end    
     
@@ -208,6 +211,7 @@ class PreferencesDialog
     end
 
     def applySettings
+        $DS_VERSION = @ds_version
         $LOGLEVEL   = @loglevel
         $TRIANGULATE = @triangulate
         $UNIT       = @unit
@@ -218,7 +222,8 @@ class PreferencesDialog
     end
     
     def getSettingsText
-        l= ["$LOGLEVEL              = #{$LOGLEVEL}",
+        l= ["$DS_VERSION            = '#{$DS_VERSION}'",
+            "$LOGLEVEL              = #{$LOGLEVEL}",
             "$UNIT                  = %.4f" % $UNIT,
             "$SUPPORTDIR            = '#{$SUPPORTDIR}'",
             "$TRIANGULATE           = #{$TRIANGULATE}",

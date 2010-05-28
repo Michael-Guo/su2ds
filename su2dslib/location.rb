@@ -118,9 +118,15 @@ class LocationDialog
         tzones  = (-12..12).to_a
         tzones.collect! { |i| "%.1f" % i.to_f }
         tzones  = tzones.join('|')
-        prompts = ['city', 'country', 'latitude (+=N)', 'longitude (+=E)', 'tz offset', 'elevation', 'north', 'show north']
-        values  = [@city,  @country,  @latitude,         @longitude,    @tzoffset.to_s,  @elevation, @north,  @shownorth.to_s]
-        choices = ['','','','',tzones,'','','true|false']
+        prompts = ['city', 'country', 'latitude (+=N)', 'longitude (+=E)', 'tz offset', 'elevation']
+        values  = [@city,  @country,  @latitude,         @longitude,    @tzoffset.to_s,  @elevation]
+        choices = ['','','','',tzones,'']
+        ## scene rotation provided within Daysim v3.0
+        if $DS_VERSION == '2.1'
+            prompts += ['north', 'show north']
+            values  += [@north, @shownorth.to_s]
+            choices += ['', 'true|false']
+        end
         dlg = UI.inputbox(prompts, values, choices, 'location')
         if not dlg
             printf "location.rb: dialog canceled\n"

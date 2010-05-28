@@ -71,6 +71,7 @@ end
 
 
 ## define defaults if config file is messed up
+$DS_VERSION         = '2.1'
 $BUILD_MATERIAL_LIB = false  
 $LOGLEVEL           = 0                ## don't report details
 $RAD                = ''
