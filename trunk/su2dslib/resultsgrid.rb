@@ -52,11 +52,18 @@ class ResultsGrid < ExportBase
         return true
     end
     
-    ## check header file for scene rotation angle (if any)
+    ## check for scene rotation angle
     def rotCheck
+        # check if exporting for Daysim v3.0; if so, rotating points not necessary, so return false
+        if $DS_VERSION == '3.0'
+            return false
+        end
         
+        # get path of rotated geometry file, from which rotation angle will be read
         rotRadName = "#{File.basename(@path).split(/\./)[0]}.rad.rotated.rad"
         rotRadPath = "#{File.expand_path("./..", File.dirname(@path))}/#{rotRadName}"
+        
+        # read rotation angle
         if File.exists?(rotRadPath)
             f = File.new(rotRadPath)
             lines = f.readlines
