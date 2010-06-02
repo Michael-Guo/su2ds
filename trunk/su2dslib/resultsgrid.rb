@@ -128,6 +128,7 @@ class ResultsGrid < ExportBase
         @aveV = sum / v.length
         @resLayer.set_attribute("layerData", "resMinMax", [@minV, @maxV]) ## stored for scale generation and adjustment
         @resLayer.set_attribute("layerData", "resAve", @aveV)
+        @resLayer.set_attribute("layerData", "resX", @xLines )
         # calculate spacing
         @xLines.each_index { |i|
             if (@xLines[i][0] * 1000).round != (@xLines[i+1][0] * 1000).round
@@ -382,7 +383,7 @@ class ResultsPalette < Wx::Frame
         #position = Wx::DEFAULT_POSITION
         screenSize = Wx::get_display_size()
         position = Wx::Point.new((screenSize.get_width() - 300), 30)
-        size = Wx::Size.new(190,145)
+        size = Wx::Size.new(190,176)
         style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
         
         ## create frame and panel
@@ -412,8 +413,8 @@ class RDPanel < Wx::Panel
     
     def initialize(parent, id, position, size)
         
-        @model = Sketchup.active_model
-        layer = @model.active_layer
+        model = Sketchup.active_model
+        layer = model.active_layer
         begin ## note: used begin/rescue structure so that "show results palette" option could be added to menu
             @min = layer.get_attribute("layerData", "resMinMax")[0]
             @max = layer.get_attribute("layerData", "resMinMax")[1]
@@ -448,8 +449,14 @@ class RDPanel < Wx::Panel
 		$dab = Wx::ToggleButton.new(self, -1, 'display average value', dabPos, dabSize)
 		evt_togglebutton($dab.get_id()) { |e| on_toggle_average(e)}
 		
+		## "display node values" option
+		dnvPos = Wx::Point.new(10,96)
+		dnvSize = Wx::Size.new(130,20)
+		dnv = Wx::ToggleButton.new(self, -1, 'display node values', dnvPos, dnvSize)
+		evt_togglebutton(dnv.get_id()) { |e| on_toggle_node_values(e)}
+		
 		## "show scale" button
-		ssbPos = Wx::Point.new(10,96)
+		ssbPos = Wx::Point.new(10,127)
 		ssbSize = Wx::Size.new(110,20)
 		ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
 		evt_button(ssb.get_id()) { |e| on_show_scale(e)}
@@ -466,8 +473,9 @@ class RDPanel < Wx::Panel
     ## in Results Options palette
     def on_redraw(e) ## NOTE: for some reason, you need to pass the argument, even if it isn't used
         begin
-            layer = @model.active_layer
-            @model.start_operation("task", true) ## suppress UI updating, for speed
+            model = Sketchup.active_model
+            layer = model.active_layer
+            model.start_operation("task", true) ## suppress UI updating, for speed
             ## ensure active layer is still a results layer; if so proceed
             if layer.get_attribute("layerData", "results")
                 ## reset layer max and min as per values entered in Results Palette
@@ -478,7 +486,7 @@ class RDPanel < Wx::Panel
                 @max = newMax
                 
                 ## iterate through model entities to get to results faces that need to be recoloured
-                entities = @model.entities
+                entities = model.entities
                 entities.each { |e|
                     if (e.layer == layer) && (e.class == Sketchup::Group)
                         e.entities.each { |f|
@@ -495,8 +503,8 @@ class RDPanel < Wx::Panel
                 end
                 Sketchup.active_model.select_tool($rs)
                 
-                @model.start_operation("task", false) ## turn UI updating back on
-                @model.active_view.refresh ## refresh view
+                model.start_operation("task", false) ## turn UI updating back on
+                model.active_view.refresh ## refresh view
             end
         rescue => ex
             puts ex.class
@@ -517,28 +525,96 @@ class RDPanel < Wx::Panel
         end
     end
     
-    ## method for when "display average" buton is toggled; although the actual display of the average is
+    ## method for when "display average" button is toggled; although the actual display of the average is
     ## controlled within ResultsScale, this refreshes the display so the user sees the change immediately
     def on_toggle_average(e)
-        @model.active_view.refresh
+        model = Sketchup.active_model
+        model.active_view.refresh
+    end
+    
+    ## method for when "display node values" button is toggled; 
+    def on_toggle_node_values(e)
+        
+        model = Sketchup.active_model
+        layer = model.active_layer
+        
+        begin
+        
+        # button toggled "on"
+        if e.get_selection == 1
+            
+            # check if layer is results layer, and if node values are already displayed
+            if layer.get_attribute("layerData", "results") && (layer.get_attribute("layerData", "nodeValueGroup") == nil)
+                
+                nvg = model.entities.add_group
+                nvg.layer = layer
+                nvg.real_parent.set_attribute("groupData", "groupType", "nvg")  ## 'tag' to facilitate identification, applied to
+                                                                                ## group's 'parent' ComponentDefinition
+                nodes = layer.get_attribute("layerData", "resX")
+                
+                model.start_operation("task", true) ## suppress UI updating, for speed
+                
+                # iterate through nodes and create text objects
+                nodes.each { |n|   
+                    nvg.entities.add_text("%1.1f" % n[3], [n[0]/$UNIT, n[1]/$UNIT, n[2]/$UNIT])
+                }
+                
+                model.start_operation("task", false) ## turn UI updating back on
+                model.active_view.refresh ## refresh view
+                
+                layer.set_attribute("layerData", "nodeValueGroup", true) ## record existence of node value group in layer
+            end
+        
+        # button toggled off
+        elsif e.get_selection == 0
+            
+            ## check if layer has group of node value text objects
+            if layer.get_attribute("layerData", "nodeValueGroup")
+                
+                # iterate through model ComponentDefinitions and check for group containing
+                # node value text objects; if found, erase
+                model.definitions.each { |d|
+                    if d.get_attribute("groupData", "groupType") == "nvg"
+                        d.delete
+                        # a = []
+                        # d.entities.each { |e|
+                        #     a.push(e)
+                        # }
+                        # a.each { |e|
+                        #     e.erase!
+                        # }
+                    end
+                }
+                
+                # update layer data to indicate removal of node value group
+                layer.set_attribute("layerData", "nodeValueGroup", nil)
+            end
+        end    
+        
+        rescue
+            puts $!
+        end
+        
     end
     
     ## method for showing scale (intended for when Results Pallete is up, but another tool has been
     ## selected so the results scale is no longer visible)
     def on_show_scale(e)
-        if @model.active_layer.get_attribute("layerData", "results")
+        model = Sketchup.active_model
+        if model.active_layer.get_attribute("layerData", "results")
             if $rs == nil
                 $rs = ResultsScale.new
             end
-            @model.select_tool($rs)
-            @model.active_view.refresh ## refresh view
+            model.select_tool($rs)
+            model.active_view.refresh ## refresh view
         end
     end            
     
     ## refreshes panel min and max
     def refMinMax
-        min = @model.active_layer.get_attribute("layerData", "resMinMax")[0]
-        max = @model.active_layer.get_attribute("layerData", "resMinMax")[1]
+        model = Sketchup.active_model
+        min = model.active_layer.get_attribute("layerData", "resMinMax")[0]
+        max = model.active_layer.get_attribute("layerData", "resMinMax")[1]
         @minTC.set_value("%3.1f" % min)
         @maxTC.set_value("%3.1f" % max)
     end
@@ -557,5 +633,44 @@ def showMenu
         $rp.show
     end
 end
+
+## this is an extension to the Sketchup::Group class that allows fixes a glitch with
+## the SU API. Sometimes the group.entities.parent refer to the wrong definition. 
+## The method within this class checks for this error and locates the correct parent 
+## definition. Credit to thomthom at Sketchucation!
+class Sketchup::Group
+    def real_parent
+        if self.entities.parent.instances.include?(self)
+            return self.entities.parent
+        else
+            Sketchup.active_model.definitions.each{|definition|
+                return definition if definition.instances.include?(self)
+            }
+        end
+        return nil # Should not happen.
+    end
+end
+
+## this is an extension to the Sketchup::ComponentDefinition class which adds a 
+## "delete" method to the class. Copyright 2009, AlexM (found on Sketchucation)
+class Sketchup::ComponentDefinition
+	def delete(operation=true)
+		model = Sketchup.active_model
+		path = model.active_path
+		if path then path.reverse!.map!{|c| c.definition}
+			if path.include?(self) then model.selection.clear
+				(path.index(self)+1).times{model.close_active}
+			end
+		end
+		model.start_operation "Delete Definition of #{self.name}", true if operation
+		begin 
+			self.entities.erase_entities self.entities.to_a
+			operation ? model.commit_operation : true
+		rescue
+			model.abort_operation if operation
+			false
+		end
+	end#def
+end#class
 
 end # SU2DS module
