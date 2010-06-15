@@ -211,3 +211,14 @@ else
     end
     file_loaded("su2ds.rb")
 end
+
+# FOR DEBUGGING
+# def showLocDialog
+#     values = ['Edmonton' , 'Canada', 53.53, -114.1, -7, 723, 0, false]
+#     version = $DS_VERSION
+#     ld = SU2DS::LocationWXUI.new(values, version)
+#     if ld.show_modal == 5100
+#         out = ld.getValues
+#     end
+#     out.each { |e| puts e.to_s}
+# end

@@ -1,5 +1,5 @@
 #require "su2dslib/exportbase.rb" ## not needed if SU2DS module used
-require "wxSU/lib/Startup"
+require "wxSU/lib/Startup" ## moved to su2ds.rb
 
 module SU2DS
 
@@ -427,41 +427,41 @@ class RDPanel < Wx::Panel
         super(parent, id, position, size)
         
         ## max/min rescaling
-		maxTCPos = Wx::Point.new(10,10)
-		minTCPos = Wx::Point.new(10,35)
-		maxMinTCSize = Wx::Size.new(50,20)
-		@maxTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @max, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
-		@minTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @min, minTCPos, maxMinTCSize, Wx::TE_LEFT)
+		    maxTCPos = Wx::Point.new(10,10)
+		    minTCPos = Wx::Point.new(10,35)
+		    maxMinTCSize = Wx::Size.new(50,20)
+		    @maxTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @max, maxTCPos, maxMinTCSize, Wx::TE_LEFT)
+		    @minTC = Wx::TextCtrl.new(self, -1, "%3.1f" % @min, minTCPos, maxMinTCSize, Wx::TE_LEFT)
 		
-		maxSTPos = Wx::Point.new(65,12)
-		minSTPos = Wx::Point.new(65,37)
-		maxST = Wx::StaticText.new(self, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
-		minST = Wx::StaticText.new(self, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
+		    maxSTPos = Wx::Point.new(65,12)
+		    minSTPos = Wx::Point.new(65,37)
+		    maxST = Wx::StaticText.new(self, -1, 'max', maxSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)
+		    minST = Wx::StaticText.new(self, -1, 'min', minSTPos, Wx::DEFAULT_SIZE, Wx::ALIGN_LEFT)		
 		
-		mmbPos = Wx::Point.new(110,34)
-		mmbSize = Wx::Size.new(70,20)
-		mmb = Wx::Button.new(self, -1, 'redraw', mmbPos, mmbSize, Wx::BU_BOTTOM)
-		evt_button(mmb.get_id()) {|e| on_redraw(e)}
+		    mmbPos = Wx::Point.new(110,34)
+		    mmbSize = Wx::Size.new(70,20)
+		    mmb = Wx::Button.new(self, -1, 'redraw', mmbPos, mmbSize, Wx::BU_BOTTOM)
+		    evt_button(mmb.get_id()) {|e| on_redraw(e)}
 		
-		## "display average" option
-		dabPos = Wx::Point.new(10,65)
-		dabSize = Wx::Size.new(130,20)
-		$dab = Wx::ToggleButton.new(self, -1, 'display average value', dabPos, dabSize)
-		evt_togglebutton($dab.get_id()) { |e| on_toggle_average(e)}
+		    ## "display average" option
+		    dabPos = Wx::Point.new(10,65)
+		    dabSize = Wx::Size.new(130,20)
+		    $dab = Wx::ToggleButton.new(self, -1, 'display average value', dabPos, dabSize)
+		    evt_togglebutton($dab.get_id()) { |e| on_toggle_average(e)}
 		
-		## "display node values" option
-		dnvPos = Wx::Point.new(10,96)
-		dnvSize = Wx::Size.new(130,20)
-		dnv = Wx::ToggleButton.new(self, -1, 'display node values', dnvPos, dnvSize)
-		evt_togglebutton(dnv.get_id()) { |e| on_toggle_node_values(e)}
+		    ## "display node values" option
+		    dnvPos = Wx::Point.new(10,96)
+		    dnvSize = Wx::Size.new(130,20)
+		    dnv = Wx::ToggleButton.new(self, -1, 'display node values', dnvPos, dnvSize)
+		    evt_togglebutton(dnv.get_id()) { |e| on_toggle_node_values(e)}
 		
-		## "show scale" button
-		ssbPos = Wx::Point.new(10,127)
-		ssbSize = Wx::Size.new(110,20)
-		ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
-		evt_button(ssb.get_id()) { |e| on_show_scale(e)}
+		    ## "show scale" button
+		    ssbPos = Wx::Point.new(10,127)
+		    ssbSize = Wx::Size.new(110,20)
+		    ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
+		    evt_button(ssb.get_id()) { |e| on_show_scale(e)}
 		
-		## export image ## one day -- haven't got this figured out quite yet
+		    ## export image ## one day -- haven't got this figured out quite yet
         # exBPos = Wx::Point.new(10,65)
         # exBSize = Wx::Size.new(120,20)
         # exB = Wx::Button.new(self, -1, 'export image', exBPos, exBSize, Wx::BU_BOTTOM)
