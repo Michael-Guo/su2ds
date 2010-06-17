@@ -222,3 +222,36 @@ end
 #     end
 #     out.each { |e| puts e.to_s}
 # end
+
+# FOR DEBUGGING
+# def showExportDialog
+#     values = ['/Users/macuser/Desktop', 'project', '/Users/macuser/Desktop/weather.wea', true, false]
+#     ed = SU2DS::ExportOptionsWXUI.new(values)
+#     if ed.show_modal == 5100
+#         puts ed.getValues
+#     else
+#         puts "export cancelled"
+#     end
+# end
+
+# FOR DEBUGGING
+# def showPointsDialog
+#     values = ['points', 0.5]
+#     pd = SU2DS::PointsWXUI.new(values)
+#     if pd.show_modal == 5100
+#         puts pd.getValues
+#     else
+#         puts "export cancelled"
+#     end
+# end
+
+# FOR DEBUGGING
+def showPrefDialog
+    values = ['2.1', 1, false, 0.0254, '/Library/Application Support/Google Sketchup 7/Sketchup', true, 'C:/DAYSIM/bin_windows', 'C:/DAYSIM/materials']
+    pd = SU2DS::PreferencesWXUI.new(values)
+    if pd.show_modal == 5100
+        puts pd.getValues
+    else
+        puts "export cancelled"
+    end
+end

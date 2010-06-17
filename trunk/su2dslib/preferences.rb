@@ -121,47 +121,79 @@ class PreferencesDialog
     
     ## this is the highest level method called when "preferences" option
     ## is selected in su menu
+    ## this is the old version; a new version using a WX dialog is below
+    # def showDialog
+    #     updateFromFile(@filepath) ## updates settings from config.rb
+    #     a = (-12..12).to_a
+    #     a.collect! { |i| "%.1f" % i }
+    #     utcs = 'nil|' + a.join("|")
+    #     prompts = [   'Daysim version', 'log level',  'triangulate faces']
+    #     values  = [     @ds_version, @loglevel,      @triangulate.to_s]
+    #     choices = [     '2.1|3.0', '0|1|2|3',     'true|false']
+    #     prompts += [  'unit', 'supportdir',         'update library']
+    #     values  += [@unit,  @supportdir, @build_material_lib.to_s]
+    #     choices += [        '',           '',             'true|false']
+    #     prompts += [ 'binary path', 'materials path']
+    #     values  += [@daysim_bin_dir, @daysim_mat_dir]
+    #     choices += [ '', '']
+    #     
+    #     dlg = UI.inputbox(prompts, values, choices, 'preferences')
+    #     if not dlg ## note: if dlg = nil, 'not dlg' returns true
+    #         printf "preferences dialog.rb canceled\n"
+    #         return 
+    #     else
+    #         evaluateDialog(dlg) ## reads results from dlg array and applies to appropriate instance variables
+    #         applySettings() ## assigns instance variable values to appropriate global variables
+    #         writeValues ## updates config.rb file
+    #     end
+    # end
+    
+    ## this is the highest level method called when "preferences" option
+    ## is selected in su menu
     def showDialog
         updateFromFile(@filepath) ## updates settings from config.rb
-        a = (-12..12).to_a
-        a.collect! { |i| "%.1f" % i }
-        utcs = 'nil|' + a.join("|")
-        prompts = [   'Daysim version', 'log level',  'triangulate faces']
-        values  = [     @ds_version, @loglevel,      @triangulate.to_s]
-        choices = [     '2.1|3.0', '0|1|2|3',     'true|false']
-        prompts += [  'unit', 'supportdir',         'update library']
-        values  += [@unit,  @supportdir, @build_material_lib.to_s]
-        choices += [        '',           '',             'true|false']
-        prompts += [ 'binary path', 'materials path']
-        values  += [@daysim_bin_dir, @daysim_mat_dir]
-        choices += [ '', '']
+        values  = [@ds_version, @loglevel, @triangulate, @unit,  @supportdir, @build_material_lib, @daysim_bin_dir, @daysim_mat_dir]
         
-        dlg = UI.inputbox(prompts, values, choices, 'preferences')
-        if not dlg ## note: if dlg = nil, 'not dlg' returns true
-            printf "preferences dialog.rb canceled\n"
-            return 
-        else
-            evaluateDialog(dlg) ## reads results from dlg array and applies to appropriate instance variables
-            applySettings() ## assigns instance variable values to appropriate global variables
+        pd = PreferencesWXUI.new(values)
+        if pd.show_modal == 5100
+            output = pd.getValues
+            evaluateDialog(output) ## reads results and applies to appropriate instance variables
+            applySettings ## assigns instance variable values to appropriate global variables
             writeValues ## updates config.rb file
+        else
+            printf "preferences dialog cancelled\n"
+            return
         end
     end
     
+    ## old version, before WX preferences menu implemented
+    # def evaluateDialog(dlg)
+    #     @ds_version  = dlg[0].to_s
+    #     @loglevel    = dlg[1].to_i
+    #     @triangulate = truefalse(dlg[2])
+    #     begin
+    #         @unit = dlg[3].to_f
+    #     rescue
+    #         printf "unit setting not a number('#{dlg[3]}') => ignored\n"
+    #     end 
+    #     @supportdir = dlg[4]
+    #     @build_material_lib = dlg[5]
+    #     @daysim_bin_dir = dlg[6]
+    #     @daysim_mat_dir = dlg[7]
+    #     validate() ## this just checks @supportdir
+    # end    
+    
     def evaluateDialog(dlg)
-        @ds_version  = dlg[0].to_s
-        @loglevel    = dlg[1].to_i
-        @triangulate = truefalse(dlg[2])
-        begin
-            @unit = dlg[3].to_f
-        rescue
-            printf "unit setting not a number('#{dlg[3]}') => ignored\n"
-        end 
+        @ds_version  = dlg[0]
+        @loglevel    = dlg[1]
+        @triangulate = dlg[2]
+        @unit = dlg[3]
         @supportdir = dlg[4]
         @build_material_lib = dlg[5]
         @daysim_bin_dir = dlg[6]
         @daysim_mat_dir = dlg[7]
         validate() ## this just checks @supportdir
-    end    
+    end
     
     def truefalse(s)
         if s == "true"

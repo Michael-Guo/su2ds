@@ -16,9 +16,9 @@ class RadianceScene < ExportBase
         $project_name = "unnamed_project"
         $export_dir = Dir.pwd()
         $weather_file = ''
-        $weather_file_path = Sketchup.active_model.get_attribute("modelData", "weatherFile") ## added for su2ds -- TODO is adding a better method for selecting this path
-        $points_layer = "points" ## added for su2ds
-        $point_spacing = 0.5  ## added for su2ds. Note: this is in export units, not Sketchup units
+        $weather_file_path = @model.get_attribute("modelData", "weatherFile", nil) ## added for su2ds
+        $points_layer = @model.get_attribute("modelData", "pointsLayer", "points") ## added for su2ds
+        $point_spacing = @model.get_attribute("modelData", "pointSpacing", 0.5)  ## added for su2ds. Note: this is in export units, not Sketchup units
         $point_text = [] ## added for su2ds
         setExportDirectory() ## sets $project_name and $export_dir variables
         
@@ -79,51 +79,86 @@ class RadianceScene < ExportBase
         end
     end
    
+    # def confirmExportDirectory
+    #     ## show user dialog for export options
+    #     ud = UserDialog.new() 
+    #     ud.addOption("project directory", $export_dir)
+    #     ud.addOption("project name", $project_name)
+    #     ud.addOption("weather file", $weather_file_path) ## added for su2ds
+    #     ud.addOption("use present location", true) ## added for su2ds
+    #     ud.addOption("triangulate", $TRIANGULATE)
+    #     
+    #     if ud.show('export options') == true   ## this bit reads the results of the user dialogue
+    #         $export_dir = ud.results[0] 
+    #         $project_name = ud.results[1]
+    #         if not confirmWeatherFile(ud.results[2]) ## added for su2ds; confirms weather file information
+    #             uimessage('export canceled')
+    #             return false
+    #         end
+    #         if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
+    #             begin
+    #                 ld = LocationDialog.new()
+    #                 ld.show()
+    #             rescue => e 
+    #                 msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+    #                 UI.messagebox msg            
+    #             end
+    #         end
+    #         $TRIANGULATE = ud.results[4]
+    #  
+    #         ## note: overwrite confirmation moved to within confirmWeatherFile
+    #     else
+    #         uimessage('export canceled')
+    #         return false
+    #     end
+    #     
+    #     ## use test directory in debug mode
+    #     if $DEBUG and  $testdir != ''
+    #         $export_dir = $testdir
+    #         scene_dir = "#{$export_dir}/#{$project_name}"
+    #         if FileTest.exists?(scene_dir)
+    #             system("rm -rf #{scene_dir}")
+    #         end
+    #     end
+    #     if $export_dir[-1,1] == '/'
+    #         $export_dir = $export_dir[0,$export_dir.length-1]
+    #     end
+    #     return true
+    # end
+    
     def confirmExportDirectory
         ## show user dialog for export options
-        ud = UserDialog.new() 
-        ud.addOption("project directory", $export_dir)
-        ud.addOption("project name", $project_name)
-        ud.addOption("weather file", $weather_file_path) ## added for su2ds
-        ud.addOption("use present location", true) ## added for su2ds
-        ud.addOption("triangulate", $TRIANGULATE)
-        
-        if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-            $export_dir = ud.results[0] 
-            $project_name = ud.results[1]
-            if not confirmWeatherFile(ud.results[2]) ## added for su2ds; confirms weather file information
-                uimessage('export canceled')
+        values = [$export_dir, $project_name, $weather_file_path, true, $TRIANGULATE]
+
+        ed = SU2DS::ExportOptionsWXUI.new(values)
+        if ed.show_modal == 5100
+            results = ed.getValues
+            $export_dir = results[0]
+            $project_name = results[1]
+            if not confirmWeatherFile(results[2])
+                uimessage('export cancelled')
                 return false
             end
-            if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
+            if not results[3]
                 begin
                     ld = LocationDialog.new()
-                    ld.show()
-                rescue => e 
+                    ld.show
+                rescue => e
                     msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-                    UI.messagebox msg            
+                    UI.messagebox msg
                 end
             end
-            $TRIANGULATE = ud.results[4]
- 
-            ## note: overwrite confirmation moved to within confirmWeatherFile
+            $TRIANGULATE = results[4]
         else
-            uimessage('export canceled')
+            uimessage('export cancelled')
             return false
         end
         
-        ## use test directory in debug mode
-        if $DEBUG and  $testdir != ''
-            $export_dir = $testdir
-            scene_dir = "#{$export_dir}/#{$project_name}"
-            if FileTest.exists?(scene_dir)
-                system("rm -rf #{scene_dir}")
-            end
-        end
         if $export_dir[-1,1] == '/'
             $export_dir = $export_dir[0,$export_dir.length-1]
         end
-        return true
+        
+        return true                
     end
     
     ## new for su2ds
@@ -248,21 +283,38 @@ class RadianceScene < ExportBase
     end
     
     ## new for su2ds
+    # def confirmPointsExportOptions ## old method without WX dialog
+    #     ## show user dialog for export options
+    #     ud = UserDialog.new() 
+    #     ud.addOption("polygon layer", $points_layer)
+    #     ud.addOption("spacing (m)", $point_spacing.to_s)
+    #     if ud.show('export options') == true   ## this bit reads the results of the user dialogue
+    #         $points_layer = ud.results[0]
+    #         $point_spacing = ud.results[1].to_f
+    #     else
+    #         uimessage('export canceled')
+    #         return false
+    #     end
+    #     
+    #     return true
+    # end
+    
+    ## show user dialog for export options
     def confirmPointsExportOptions
-        ## show user dialog for export options
-        ud = UserDialog.new() 
-        ud.addOption("polygon layer", $points_layer)
-        ud.addOption("spacing (m)", $point_spacing.to_s)
-        if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-            $points_layer = ud.results[0]
-            $point_spacing = ud.results[1].to_f
+        values = [$points_layer, $point_spacing]
+        
+        pd = PointsWXUI.new(values)
+        if pd.show_modal == 5100
+            results = pd.getValues
+            $points_layer = results[0]
+            $point_spacing = results[1]
         else
-            uimessage('export canceled')
+            uimessage('export cancelled')
             return false
         end
         
         return true
-    end
+    end                
     
     def export      
         # check if points file has been written ## new for su2ds
@@ -311,6 +363,8 @@ class RadianceScene < ExportBase
         $points_group = entities.add_group ## new for su2ds; adds group to which points mesh will be added
         $points_group.layer = $points_layer ## puts points group on same layer as geometry used to create mesh
         $points_group.set_attribute("grid", "is_grid", true) ## marks group as containing the points mesh
+        @model.set_attribute("modelData", "pointsLayer", $points_layer) ## store point layer in model for future reference
+        @model.set_attribute("modelData", "pointSpacing", $point_spacing)  ## store point spacing in model for future reference
         $globaltrans = Geom::Transformation.new ## creates new identity transformation
         $nameContext.push($project_name) 
         sceneref = exportPointsByGroup(pointsEntities, Geom::Transformation.new)
