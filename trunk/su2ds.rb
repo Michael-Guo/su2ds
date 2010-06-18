@@ -246,12 +246,14 @@ end
 # end
 
 # FOR DEBUGGING
-def showPrefDialog
-    values = ['2.1', 1, false, 0.0254, '/Library/Application Support/Google Sketchup 7/Sketchup', true, 'C:/DAYSIM/bin_windows', 'C:/DAYSIM/materials']
-    pd = SU2DS::PreferencesWXUI.new(values)
-    if pd.show_modal == 5100
-        puts pd.getValues
-    else
-        puts "export cancelled"
-    end
-end
+# def showPrefDialog
+#     values = ['2.1', 1, false, 0.0254, '/Library/Application Support/Google Sketchup 7/Sketchup', true, 'C:/DAYSIM/bin_windows', 'C:/DAYSIM/materials']
+#     pd = SU2DS::PreferencesWXUI.new(values)
+#     if pd.show_modal == 5100
+#         puts pd.getValues
+#     else
+#         puts "export cancelled"
+#     end
+# end
+
+
