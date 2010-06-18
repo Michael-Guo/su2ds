@@ -211,6 +211,7 @@ class RadianceScene < ExportBase
                     ## write new files
                     if convertEPW(path)
                         $weather_file = "#{File.basename(path)[0..-5]}.wea"
+                        $weather_file_path = path
                         uimessage("Weather file #{path} converted.")
                         return true
                     else
@@ -349,6 +350,7 @@ class RadianceScene < ExportBase
         Sketchup.active_model.set_attribute("modelData", "weatherFile", $weather_file_path) ## added for su2ds
         writeHeaderFile() ## writes DAYSIM header file; added for su2ds
         writeLogFile()
+        UI.messagebox("Export complete!", MB_OK)
     end
     
     ## new for su2ds
