@@ -8,6 +8,66 @@ module SU2DS
 
 class ResultsGrid < ExportBase
     
+    ## CLASS METHODS
+    
+    def self.getColor(val, min, max)
+        
+        ## calculate values in terms of hue, saturation, and value
+        ## note: to create "rainbow" gradient, hue varied linearly between
+        ## 0 and 240 degrees, with saturation and lightness held at 1
+        h = (val - min) * 240 / (max - min)
+        ## note: since red intuitively suggests more light, below I "flip" the
+        ## hue value, so that higher values get lower (ie closer to blue) hues
+        if h < 0
+            h = 240
+        elsif h > 240
+            h = 0
+        else
+            h = 240 - h
+        end
+        s = 1
+        ## note: below is a saturdation correction algorithm that some think
+        ## makes for a more even gradient; I personally prefer the high-saturation
+        ## version
+        # if h <= 120
+        #     s = 1 - (0.29 - 0.879 * h / 360)
+        # else
+        #     s = 1 - 1.455 * (h / 360 - 0.33)
+        # end
+        v = 1
+        
+        ## convert HSV values to RGB
+        c = v * s
+        hP = h / 60
+        x = c * (1 - (hP % 2 - 1).abs)
+        
+        if (0 <= hP) && (hP < 1)
+            out = [c, x, 0]
+        elsif (1 <= hP) && (hP < 2)
+            out = [x, c, 0]
+        elsif (2 <= hP) && (hP < 3)
+            out = [0, c, x]
+        elsif (3 <= hP) && (hP < 4)
+            out = [0, x, c]
+        elsif (4 <= hP) && (hP < 5)
+            out = [x, 0, c]
+        elsif (5 <= hP) && (hP < 6)
+            out = [c, 0, x]
+        else
+            out = [0, 0, 0]
+        end
+                    
+        m = v - c
+        
+        out.collect{ |e| e + m }            
+            
+        ## return Sketchup::Color object
+        return Sketchup::Color.new(out[0].to_f, out[1].to_f, out[2].to_f)
+    end
+        
+        
+    ## INSTANCE METHODS
+    
     def initialize
         @lines = []  ## array of DAYSIM results read from Daysim output file
         @xLines = [] ## @lines array sorted in order of ascending x coordinates
@@ -260,30 +320,17 @@ class ResultsGrid < ExportBase
                 val += e.get_attribute("edgeData", "value") / 4
             }
             f.set_attribute("faceData", "value", val)
-            setColor(f, val)
+            color = ResultsGrid.getColor(val, @minV, @maxV)
+            f.material = color
+            f.back_material = color
         end
         
     end
     
-    ## set Face color
-    def setColor(f, val)
-        if @maxV != @minV
-            colorVal = (val - @minV) * 255 / (@maxV - @minV)
-        else
-            colorVal = 255/2.to_i
-        end
-        faceCol = Sketchup::Color.new
-        faceCol.red = 127
-        faceCol.blue = 127
-        faceCol.green = colorVal
-        f.material = faceCol
-        f.back_material = f.material
-    end
-    
 end # class
 
-## this class is the observer that calls results scale utilies when current layer is changed
-class ResultsScaleObserver < Sketchup::LayersObserver
+## this class is the observer that manages results-related stuff when layers are changed    
+class ResultsObserver < Sketchup::LayersObserver
     
     ## activate ResultsScale and ResultsPalette if "results" layer selected; if "results" layer active and 
     ## "non-results" layer selected, activates nil tool to hide results scale; does nothing if switching 
@@ -299,6 +346,11 @@ class ResultsScaleObserver < Sketchup::LayersObserver
                 $rp.show
             else
                 $rp.refresh
+                ## check if node value toggle button engaged; if so, redraw node values
+                # if $rp.panel.check_nv_toggle
+                #     $rp.panel.remove_node_values(Sketchup.active_model, activeLayer)
+                #     $rp.panel.add_node_values(Sketchup.active_model, activeLayer)
+                # end
             end
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
@@ -353,8 +405,7 @@ class ResultsScale
                 pt4 = [15, (57 + i*10), 0]
                 pts = [pt1, pt2, pt3, pt4]
                 step = (@max - @min) / 9
-                colorVal = ((@max - i*step) - @min) * 255 / (@max - @min)
-                drawColor = Sketchup::Color.new(127, colorVal.to_i, 127)
+                drawColor = ResultsGrid.getColor((@max - i*step), @min, @max)
                 view.drawing_color = drawColor
                 view.draw2d(GL_QUADS, pts)
             }
@@ -375,7 +426,9 @@ end # class
 ## the Results Palette is meant to control options for the display of simulation
 ## results imported from DAYSIM
 class ResultsPalette < Wx::Frame
-
+    
+    attr_accessor :panel
+    
     def initialize()
         
         ## set frame characteristics
@@ -383,8 +436,8 @@ class ResultsPalette < Wx::Frame
         #position = Wx::DEFAULT_POSITION
         screenSize = Wx::get_display_size()
         position = Wx::Point.new((screenSize.get_width() - 300), 30)
-        size = Wx::Size.new(190,176)
-        style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER
+        size = Wx::Size.new(190,207)
+        style = WxSU::PALETTE_FRAME_STYLE | Wx::SIMPLE_BORDER | Wx::FRAME_FLOAT_ON_PARENT
         
         ## create frame and panel
         super(WxSU.app.sketchup_frame, -1, title, position, size, style)
@@ -452,15 +505,21 @@ class RDPanel < Wx::Panel
 		    ## "display node values" option
 		    dnvPos = Wx::Point.new(10,96)
 		    dnvSize = Wx::Size.new(130,20)
-		    dnv = Wx::ToggleButton.new(self, -1, 'display node values', dnvPos, dnvSize)
-		    evt_togglebutton(dnv.get_id()) { |e| on_toggle_node_values(e)}
+		    @dnv = Wx::ToggleButton.new(self, -1, 'display node values', dnvPos, dnvSize)
+		    evt_togglebutton(@dnv.get_id()) { |e| on_toggle_node_values(e)}
 		
 		    ## "show scale" button
 		    ssbPos = Wx::Point.new(10,127)
 		    ssbSize = Wx::Size.new(110,20)
 		    ssb = Wx::Button.new(self, -1, 'show scale', ssbPos, ssbSize, Wx::BU_BOTTOM)
 		    evt_button(ssb.get_id()) { |e| on_show_scale(e)}
-		
+		    
+		    ## "import results" button
+		    irbPos = Wx::Point.new(10,158)
+		    irbSize = Wx::Size.new(110,20)
+		    irb = Wx::Button.new(self, -1, 'import results', irbPos, irbSize, Wx::BU_BOTTOM)
+		    evt_button(irb.get_id()) { |e| on_import(e)}
+		    
 		    ## export image ## one day -- haven't got this figured out quite yet
         # exBPos = Wx::Point.new(10,65)
         # exBSize = Wx::Size.new(120,20)
@@ -518,8 +577,9 @@ class RDPanel < Wx::Panel
         val = f.get_attribute("faceData", "value")
         
         if val
-            colorVal = (val - @min) * 255 / (@max - @min)
-            faceCol = Sketchup::Color.new(127, colorVal.to_i, 127)
+            #colorVal = (val - @min) * 255 / (@max - @min)
+            #faceCol = Sketchup::Color.new(127, colorVal.to_i, 127)
+            faceCol = ResultsGrid.getColor(val, @min, @max)
             f.material = faceCol
             f.back_material = f.material
         end
@@ -530,6 +590,11 @@ class RDPanel < Wx::Panel
     def on_toggle_average(e)
         model = Sketchup.active_model
         model.active_view.refresh
+    end
+    
+    ## checks status of node value toggle; used for properly handling layer switches
+    def check_nv_toggle
+        return @dnv.get_value()
     end
     
     ## method for when "display node values" button is toggled; 
@@ -543,58 +608,97 @@ class RDPanel < Wx::Panel
         # button toggled "on"
         if e.get_selection == 1
             
-            # check if layer is results layer, and if node values are already displayed
-            if layer.get_attribute("layerData", "results") && (layer.get_attribute("layerData", "nodeValueGroup") == nil)
-                
-                nvg = model.entities.add_group
-                nvg.layer = layer
-                nvg.real_parent.set_attribute("groupData", "groupType", "nvg")  ## 'tag' to facilitate identification, applied to
-                                                                                ## group's 'parent' ComponentDefinition
-                nodes = layer.get_attribute("layerData", "resX")
-                
-                model.start_operation("task", true) ## suppress UI updating, for speed
-                
-                # iterate through nodes and create text objects
-                nodes.each { |n|   
-                    nvg.entities.add_text("%1.1f" % n[3], [n[0]/$UNIT, n[1]/$UNIT, n[2]/$UNIT])
-                }
-                
-                model.start_operation("task", false) ## turn UI updating back on
-                model.active_view.refresh ## refresh view
-                
-                layer.set_attribute("layerData", "nodeValueGroup", true) ## record existence of node value group in layer
-            end
+            add_node_values(model, layer)
+            # # check if layer is results layer, and if node values are already displayed
+            # if layer.get_attribute("layerData", "results") && (layer.get_attribute("layerData", "nodeValueGroup") == nil)
+            #     
+            #     nvg = model.entities.add_group
+            #     nvg.layer = layer
+            #     nvg.real_parent.set_attribute("groupData", "groupType", "nvg")  ## 'tag' to facilitate identification, applied to
+            #                                                                     ## group's 'parent' ComponentDefinition
+            #     nodes = layer.get_attribute("layerData", "resX")
+            #     
+            #     model.start_operation("task", true) ## suppress UI updating, for speed
+            #     
+            #     # iterate through nodes and create text objects
+            #     nodes.each { |n|   
+            #         nvg.entities.add_text("%1.1f" % n[3], [n[0]/$UNIT, n[1]/$UNIT, n[2]/$UNIT])
+            #     }
+            #     
+            #     model.start_operation("task", false) ## turn UI updating back on
+            #     model.active_view.refresh ## refresh view
+            #     
+            #     layer.set_attribute("layerData", "nodeValueGroup", true) ## record existence of node value group in layer
+            # end
         
         # button toggled off
         elsif e.get_selection == 0
             
+            remove_node_values(model, layer)
             ## check if layer has group of node value text objects
-            if layer.get_attribute("layerData", "nodeValueGroup")
-                
-                # iterate through model ComponentDefinitions and check for group containing
-                # node value text objects; if found, erase
-                model.definitions.each { |d|
-                    if d.get_attribute("groupData", "groupType") == "nvg"
-                        d.delete
-                        # a = []
-                        # d.entities.each { |e|
-                        #     a.push(e)
-                        # }
-                        # a.each { |e|
-                        #     e.erase!
-                        # }
-                    end
-                }
-                
-                # update layer data to indicate removal of node value group
-                layer.set_attribute("layerData", "nodeValueGroup", nil)
-            end
+            # if layer.get_attribute("layerData", "nodeValueGroup")
+            #     
+            #     # iterate through model ComponentDefinitions and check for group containing
+            #     # node value text objects; if found, erase
+            #     model.definitions.each { |d|
+            #         if d.get_attribute("groupData", "groupType") == "nvg"
+            #             d.delete
+            #         end
+            #     }
+            #     
+            #     # update layer data to indicate removal of node value group
+            #     layer.set_attribute("layerData", "nodeValueGroup", nil)
+            # end
         end    
         
         rescue
             puts $!
         end
         
+    end
+    
+    ## adds node value text to layer
+    def add_node_values(model, layer)
+        
+        # check if layer is results layer, and if node values are already displayed
+        if layer.get_attribute("layerData", "results") && (layer.get_attribute("layerData", "nodeValueGroup") == nil)
+            
+            nvg = model.entities.add_group
+            nvg.layer = layer
+            nvg.real_parent.set_attribute("groupData", "groupType", "nvg")  ## 'tag' to facilitate identification, applied to
+                                                                            ## group's 'parent' ComponentDefinition
+            nodes = layer.get_attribute("layerData", "resX")
+            
+            model.start_operation("task", true) ## suppress UI updating, for speed
+            # iterate through nodes and create text objects
+            nodes.each { |n|   
+                nvg.entities.add_text("%1.1f" % n[3], [n[0]/$UNIT, n[1]/$UNIT, n[2]/$UNIT])
+            }
+            
+            model.start_operation("task", false) ## turn UI updating back on
+            model.active_view.refresh ## refresh view
+            
+            layer.set_attribute("layerData", "nodeValueGroup", true) ## record existence of node value group in layer
+        end
+        
+    end
+      
+    ## removes node value text from layer    
+    def remove_node_values(model, layer)
+        
+        if layer.get_attribute("layerData", "nodeValueGroup")
+            
+            # iterate through model ComponentDefinitions and check for group containing
+            # node value text objects; if found, erase
+            model.definitions.each { |d|
+                if d.get_attribute("groupData", "groupType") == "nvg"
+                    d.delete
+                end
+            }
+            
+            # update layer data to indicate removal of node value group
+            layer.set_attribute("layerData", "nodeValueGroup", nil)
+        end
     end
     
     ## method for showing scale (intended for when Results Pallete is up, but another tool has been
@@ -618,7 +722,15 @@ class RDPanel < Wx::Panel
         @minTC.set_value("%3.1f" % min)
         @maxTC.set_value("%3.1f" % max)
     end
-        
+    
+    ## imports results
+    def on_import(e)
+        rg = SU2DS::ResultsGrid.new
+        if rg.readResults
+            rg.drawGrid
+        end
+    end
+     
     ## method for exporting image; not yet implemented; need to figure out way to include results scale
     # def on_export(e)
     #     view = Sketchup.active_model.active_view
