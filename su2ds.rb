@@ -91,12 +91,25 @@ $DAYSIM_MAT_DIR     = 'C:/DAYSIM/materials'
 pl = SU2DS::PrefLoader.new
 pl.loadPreferences()
 
+## app observer for loading other observers
+class SU2DSAppObserver < Sketchup::AppObserver
+    
+    def onNewModel(model)
+        model.layers.add_observer(SU2DS::ResultsObserver.new)
+    end
+    
+    def onOpenModel(model)
+        model.layers.add_observer(SU2DS::ResultsObserver.new)
+    end
+end
+
 ## add observers
-Sketchup.active_model.layers.add_observer(SU2DS::ResultsScaleObserver.new)
+Sketchup.active_model.layers.add_observer(SU2DS::ResultsObserver.new)
+Sketchup.add_observer(SU2DSAppObserver.new)
+
 
 ## define scale matrix for unit conversion
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
-
 
 def startDSExport 
     begin
