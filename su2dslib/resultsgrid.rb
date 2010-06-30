@@ -337,6 +337,13 @@ class ResultsObserver < Sketchup::LayersObserver
     ## between "non-results" layers
     def onCurrentLayerChanged(layers, activeLayer)
         if activeLayer.get_attribute("layerData", "results")
+            ## turn off visibility of all other results layers
+            layers.each { |l| 
+                if l.get_attribute("layerData", "results") && (l != activeLayer)
+                    l.visible = false
+                end
+            }
+            
             if $rs == nil
                 $rs = ResultsScale.new
             end
@@ -347,10 +354,13 @@ class ResultsObserver < Sketchup::LayersObserver
             else
                 $rp.refresh
                 ## check if node value toggle button engaged; if so, redraw node values
-                # if $rp.panel.check_nv_toggle
-                #     $rp.panel.remove_node_values(Sketchup.active_model, activeLayer)
-                #     $rp.panel.add_node_values(Sketchup.active_model, activeLayer)
-                # end
+                if $rp.panel.check_nv_toggle
+                    ## remove all node values in model
+                    layers.each { |l|
+                        $rp.panel.remove_node_values(Sketchup.active_model, l)
+                    }
+                    $rp.panel.add_node_values(Sketchup.active_model, activeLayer)
+                end
             end
         elsif Sketchup.active_model.tools.active_tool_id == 50004 ## this seems to be the ID for ResultsScale...
                                                                   ## this is kind of rough, because there doesn't
@@ -609,46 +619,12 @@ class RDPanel < Wx::Panel
         if e.get_selection == 1
             
             add_node_values(model, layer)
-            # # check if layer is results layer, and if node values are already displayed
-            # if layer.get_attribute("layerData", "results") && (layer.get_attribute("layerData", "nodeValueGroup") == nil)
-            #     
-            #     nvg = model.entities.add_group
-            #     nvg.layer = layer
-            #     nvg.real_parent.set_attribute("groupData", "groupType", "nvg")  ## 'tag' to facilitate identification, applied to
-            #                                                                     ## group's 'parent' ComponentDefinition
-            #     nodes = layer.get_attribute("layerData", "resX")
-            #     
-            #     model.start_operation("task", true) ## suppress UI updating, for speed
-            #     
-            #     # iterate through nodes and create text objects
-            #     nodes.each { |n|   
-            #         nvg.entities.add_text("%1.1f" % n[3], [n[0]/$UNIT, n[1]/$UNIT, n[2]/$UNIT])
-            #     }
-            #     
-            #     model.start_operation("task", false) ## turn UI updating back on
-            #     model.active_view.refresh ## refresh view
-            #     
-            #     layer.set_attribute("layerData", "nodeValueGroup", true) ## record existence of node value group in layer
-            # end
         
         # button toggled off
         elsif e.get_selection == 0
             
             remove_node_values(model, layer)
-            ## check if layer has group of node value text objects
-            # if layer.get_attribute("layerData", "nodeValueGroup")
-            #     
-            #     # iterate through model ComponentDefinitions and check for group containing
-            #     # node value text objects; if found, erase
-            #     model.definitions.each { |d|
-            #         if d.get_attribute("groupData", "groupType") == "nvg"
-            #             d.delete
-            #         end
-            #     }
-            #     
-            #     # update layer data to indicate removal of node value group
-            #     layer.set_attribute("layerData", "nodeValueGroup", nil)
-            # end
+
         end    
         
         rescue
