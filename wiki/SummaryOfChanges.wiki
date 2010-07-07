@@ -1,4 +1,5 @@
 #summary this is an outline of the major changes I've made from su2rad, and the reasons for them
+#labels Deprecated
 
 === Summary of changes ===
 
