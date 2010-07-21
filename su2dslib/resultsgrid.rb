@@ -406,15 +406,22 @@ class ResultsScale
             view.draw_text([15, 28, 0], @layerName)
             view.draw_text([65, 46, 0], "%3.1f" % @max)
             view.draw_text([65, 136, 0],"%3.1f" % @min)
-        
+            ## added on an experimental basis:
+            graphInc = (136-46) / 4
+            valInc = (@max - @min) / 4
+            view.draw_text([65, 46 + graphInc, 0], "%3.1f" % (@max - valInc))
+            view.draw_text([65, 46 + 2 * graphInc, 0], "%3.1f" % (@max - 2 * valInc))
+            view.draw_text([65, 46 + 3 * graphInc, 0], "%3.1f" % (@max - 3 * valInc))
+            
             ## draw scale
-            (0..9).to_a.each { |i|
-                pt1 = [15, (47 + i*10), 0]
-                pt2 = [60, (47 + i*10), 0]
-                pt3 = [60, (57 + i*10), 0]
-                pt4 = [15, (57 + i*10), 0]
+            inc = 9 ## this adjusts the number of increments in the scale; should not be set to values >100
+            (0..(inc-1)).to_a.each { |i|
+                pt1 = [15, (47 + i*(100/inc)), 0]
+                pt2 = [60, (47 + i*(100/inc)), 0]
+                pt3 = [60, (47 + (i+1)*(100/inc)), 0]
+                pt4 = [15, (47 + (i+1)*(100/inc)), 0]
                 pts = [pt1, pt2, pt3, pt4]
-                step = (@max - @min) / 9
+                step = (@max - @min) / (inc-1)
                 drawColor = ResultsGrid.getColor((@max - i*step), @min, @max)
                 view.drawing_color = drawColor
                 view.draw2d(GL_QUADS, pts)
