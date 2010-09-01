@@ -1,4 +1,4 @@
-#list of project to-do items that don't really fit in the "issues" section
+#summary list of project to-do items that don't really fit in the "issues" section
 
 === To Do ===
 
