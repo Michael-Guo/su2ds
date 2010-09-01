@@ -1,0 +1,6 @@
+#list of project to-do items that don't really fit in the "issues" section
+
+=== To Do ===
+
+  * update manual
+  * add wiki page with "case study" projects
