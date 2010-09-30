@@ -469,7 +469,8 @@ class RadiancePolygon < ExportBase
                 y = bbox[1] ## bbox[1] = ymin               ## of d, checking if the point is in within the surface and, if so,
                 while y <= bbox[3] ## bbox[3] = ymax        ## writing the point's coordinates to variable points (which is returned)
                     p = Geom::Point3d.new(x,y,z)
-                    if Geom::point_in_polygon_2D p, verts, false ## checks if point that has been stepped to is in surface
+                    ##if Geom::point_in_polygon_2D p, verts, false ## checks if point that has been stepped to is in surface
+                    if Geom::point_in_polygon_2D p, verts, true ## accept points on border to prevent points on border between adjacent polygons from being excluded
                         points.push("%.5f %.5f %.5f 0 0 1" % [p.x*$UNIT, p.y*$UNIT, p.z*$UNIT])
                         cpoint = $points_group.entities.add_cpoint(p) ## adds point to points group
                         cpoint.layer = $points_layer ## puts point on points layer
@@ -488,10 +489,17 @@ class RadiancePolygon < ExportBase
         xs.sort!
         ys.sort!
         d = $point_spacing
-        prec = 1/d 
+        prec = 1/d
+        jitter = 0.001278   ## subtract this from xmin and ymin to make it very unlikely that a point will ever end up on
+                                  ## the border of a polygon. The problem is that we want to keep points on the borders that polygons
+                                  ## share with adjacent polygons, but not on borders they don't (because then they might be be right 
+                                  ## in the middle of a wall polygon). Implementing the logic to check which sort of border it is would
+                                  ## probably be very complimented, so instead I've assumed that if I had to pick I'd prefer to keep 
+                                  ## border polygons in general (hence the modification of the boolean argument to Geom::point_in_polygon
+                                  ## above), but I'd rather never have to deal with it. 
         xmin = xs[0]*$UNIT - d   
         #xmin = ((xmin*4).to_i-1) / 4.0  ## essentially rounds up/down to nearest 0.25 (in export units)
-        xmin = ((xmin*prec).to_i-0.5) / prec  ## changed for su2ds
+        xmin = ((xmin*prec).to_i-0.5) / prec - jitter  ## changed for su2ds
         xmax = xs[2]*$UNIT + d
         #xmax = ((xmax*4).to_i+1) / 4.0
         xmax = ((xmax*prec).to_i+0.5) / prec
