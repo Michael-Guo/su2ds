@@ -5,7 +5,13 @@ require "su2dslib/bin/fileutils.rb"
 module SU2DS
 
 class RadianceScene < ExportBase
-
+    
+    ## initialize and assign class contstants
+    
+    # export mode constants -- used for "export" method
+    EMODE_HEADER = 1    # this mode just writes header file
+    EMODE_SIM = 2       # daysim calculation carried out "within" Sketchup in this mode
+    
     def initialize
         @model = Sketchup.active_model
         initGlobals() ## initiates a set of global variables
@@ -317,7 +323,7 @@ class RadianceScene < ExportBase
         return true
     end                
     
-    def export      
+    def export(mode)      
         # check if points file has been written ## new for su2ds
         point_text = Sketchup.active_model.get_attribute("modelData","pointsText")
         if point_text == nil
@@ -397,11 +403,11 @@ class RadianceScene < ExportBase
         text += "# DAYSIM HEADER FILE\n"
         text += "# created by su2ds at #{Time.now.asctime}\n"
         text += "#######################\n\n"
-        text += "project_name       #{$project_name}\n"
-        text += "project_directory  #{$export_dir}\\\n"
-        text += "bin_directory      #{$DAYSIM_BIN_DIR}\\\n"
-        text += "material_directory #{$DAYSIM_MAT_DIR}\\\n"
-        text += "tmp_directory      #{$export_dir}\\tmp\\\n\n"
+        text += "project_name              #{$project_name}\n"
+        text += "project_directory         #{$export_dir}\\#{$project_name}\\\n"
+        text += "bin_directory             #{$DAYSIM_BIN_DIR}\\\n"
+        text += "material_directory        #{$DAYSIM_MAT_DIR}\\\n"
+        text += "tmp_directory             #{$export_dir}\\#{$project_name}\\tmp\\\n\n"
         text += "#######################\n"
         text += "# site information\n"
         text += "#######################\n"
@@ -410,7 +416,7 @@ class RadianceScene < ExportBase
         text += "longitude                 #{s['Longitude']}\n"
         text += "time_zone                 #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
         text += "site_elevation            #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
-        text += "groud_reflectance         0.2\n"
+        text += "ground_reflectance        0.2\n"
         text += "wea_data_file             #{$weather_file}\n"
         text += "wea_data_file_units       1\n"
         text += "first_weekday             1\n"
