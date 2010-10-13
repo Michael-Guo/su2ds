@@ -111,11 +111,24 @@ Sketchup.add_observer(SU2DSAppObserver.new)
 ## define scale matrix for unit conversion
 $SCALETRANS = Geom::Transformation.new(1/$UNIT)
 
+## begins export of Daysim header file and associated files
 def startDSExport 
     begin
         $MatLib = SU2DS::MaterialLibrary.new() # reads Sketchup material library and creates hashes mapping each material name to its path and radiance description (if available)
         rs = SU2DS::RadianceScene.new()
-        rs.export ## modified for su2ds
+        rs.export(SU2DS::RadianceScene::EMODE_HEADER) ## modified for su2ds
+    rescue => e 
+        msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+        UI.messagebox msg            
+    end 
+end
+
+## begins in-Sketchup daylight simulation
+def startDSSim
+    begin
+        $MatLib = SU2DS::MaterialLibrary.new() 
+        rs = SU2DS::RadianceScene.new()
+        rs.export(SU2DS::RadianceScene::EMODE_SIM) ## modified for su2ds
     rescue => e 
         msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
         UI.messagebox msg            
@@ -206,6 +219,7 @@ else
             radmenu.add_item("Create sensor point mesh") { startPointsExport }
             radmenu.add_separator
             radmenu.add_item("Export DAYSIM header file") { startDSExport }
+            radmenu.add_item("Begin DAYSIM simulation (beta)") { startDSSim }
             radmenu.add_separator
             radmenu.add_item("Import DAYSIM results") { startDSImport }
             radmenu.add_item("Show results palette") {showResultsPalette}
