@@ -297,7 +297,7 @@ class PointsWXUI < Wx::Dialog
         return values
     end 
 	
-end # ExportOptionsWXUI
+end # PointsWXUI
 
 ## this is the WX code for an improved export options dialog
 class ExportOptionsWXUI < Wx::Dialog
@@ -324,7 +324,7 @@ class ExportOptionsWXUI < Wx::Dialog
         
         pdTCPos = Wx::Point.new(160,10)
         pdTCSize = Wx::Size.new(200,20)
-        @pdTC = Wx::TextCtrl.new(self, -1, values[0], pdTCPos, pdTCSize, Wx::TE_LEFT)
+        @pdTC = Wx::TextCtrl.new(self, -1, values["projectDirectory"], pdTCPos, pdTCSize, Wx::TE_LEFT)
         
         pdBPos = Wx::Point.new(370,10)
         pdBSize = Wx::Size.new(100,20)
@@ -338,7 +338,7 @@ class ExportOptionsWXUI < Wx::Dialog
         
         pnTCPos = Wx::Point.new(160,40)
         pnTCSize = Wx::Size.new(200,20)
-        @pnTC = Wx::TextCtrl.new(self, -1, values[1], pnTCPos, pnTCSize, Wx::TE_LEFT)
+        @pnTC = Wx::TextCtrl.new(self, -1, values["projectName"], pnTCPos, pnTCSize, Wx::TE_LEFT)
         
         ## weather file
     	weaSTPos = Wx::Point.new(10,70)
@@ -347,7 +347,7 @@ class ExportOptionsWXUI < Wx::Dialog
         
         weaTCPos = Wx::Point.new(160,70)
         weaTCSize = Wx::Size.new(200,20)
-        @weaTC = Wx::TextCtrl.new(self, -1, values[2], weaTCPos, weaTCSize, Wx::TE_LEFT)
+        @weaTC = Wx::TextCtrl.new(self, -1, values["weatherFilePath"], weaTCPos, weaTCSize, Wx::TE_LEFT)
         
         weaBPos = Wx::Point.new(370,70)
         weaBSize = Wx::Size.new(100,20)
@@ -363,7 +363,7 @@ class ExportOptionsWXUI < Wx::Dialog
         plCSize = Wx::Size.new(70,20)
         @plChoices = ['yes', 'no']
         @plC = Wx::Choice.new(self, -1, plCPos, plCSize, @plChoices)
-        values[3] ? @plC.set_selection(0) : @plC.set_selection(1)
+        values["usePresentLocation"] ? @plC.set_selection(0) : @plC.set_selection(1)
     	
     	## triangulate?
     	triSTPos = Wx::Point.new(10,130)
@@ -374,7 +374,7 @@ class ExportOptionsWXUI < Wx::Dialog
         triCSize = Wx::Size.new(70,20)
         @triChoices = ['yes', 'no']
         @triC = Wx::Choice.new(self, -1, triCPos, triCSize, @triChoices)
-        values[4] ? @triC.set_selection(0) : @triC.set_selection(1)
+        values["triangulate"] ? @triC.set_selection(0) : @triC.set_selection(1)
     	
     	## okay and cancel buttons
         okBPos = Wx::Point.new(160,160)
@@ -430,16 +430,294 @@ class ExportOptionsWXUI < Wx::Dialog
 	
 	## method to be executed when "OK" button selected; returns values in array format
     def getValues
-        values = []
-        values << @pdTC.get_value()
-        values << @pnTC.get_value()
-        values << @weaTC.get_value()
-        values << (@plC.get_selection == 0) ? true : false
-        values << (@triC.get_selection == 0) ? true : false
+        #values = []
+        #values << @pdTC.get_value()
+        #values << @pnTC.get_value()
+        #values << @weaTC.get_value()
+        #values << (@plC.get_selection == 0) ? true : false
+        #values << (@triC.get_selection == 0) ? true : false
+        values = {  "projectDirectory" => @pdTC.get_value(),
+                    "projectName" => @pnTC.get_value(),
+                    "weatherFilePath" => @weaTC.get_value(),
+                    "usePresentLocation" => (@plC.get_selection == 0) ? true : false,
+                    "triangulate" => (@triC.get_selection == 0) ? true : false }
         return values
     end 
 	
 end # ExportOptionsWXUI
+
+## this is the WX code for a simulation options dialog
+class SimOptionsWXUI < Wx::Dialog
+    
+    def initialize(values)
+        
+        title = "Simulation options"
+        width = 550
+        height = 635
+        size = Wx::Size.new(width, height)
+        screenSize = Wx::get_display_size()
+        position = Wx::Point.new((screenSize.get_width() - width) / 2, (screenSize.get_height() - height) / 2)
+        style = Wx::CAPTION | Wx::SYSTEM_MENU
+        name = "Simulation options dialog"
+        
+        ## create dialog
+        super(WxSU.app.sketchup_frame, -1, title, position, size, style, name)
+        
+        ## text fields and buttons
+        
+        ## project information box
+        piBoxPos = Wx::Point.new(10,10)
+        piBoxSize = Wx::Size.new(530,120)
+        piBox = Wx::StaticBox.new(self, -1, "project information", piBoxPos, piBoxSize, 0, "piBox")
+        
+        ## project directory
+        pdSTPos = Wx::Point.new(10,35)
+        pdSTSize = Wx::Size.new(200,20)
+        pdST = Wx::StaticText.new(self, -1, 'project directory', pdSTPos, pdSTSize, Wx::ALIGN_RIGHT)
+        
+        pdTCPos = Wx::Point.new(220,35)
+        pdTCSize = Wx::Size.new(200,20)
+        @pdTC = Wx::TextCtrl.new(self, -1, values["projectDirectory"], pdTCPos, pdTCSize, Wx::TE_LEFT)
+        
+        pdBPos = Wx::Point.new(430,35)
+        pdBSize = Wx::Size.new(100,20)
+        pdButton = Wx::Button.new(self, -1, 'choose', pdBPos, pdBSize, Wx::BU_BOTTOM)
+    	evt_button(pdButton.get_id()) {|e| on_pdButton(e)}
+    	
+    	## project name
+    	pnSTPos = Wx::Point.new(10,65)
+        pnSTSize = Wx::Size.new(200,20)
+        pnST = Wx::StaticText.new(self, -1, 'project name', pnSTPos, pnSTSize, Wx::ALIGN_RIGHT)
+        
+        pnTCPos = Wx::Point.new(220,65)
+        pnTCSize = Wx::Size.new(200,20)
+        @pnTC = Wx::TextCtrl.new(self, -1, values["projectName"], pnTCPos, pnTCSize, Wx::TE_LEFT)
+        
+        ## triangulate?
+    	triSTPos = Wx::Point.new(10,95)
+        triSTSize = Wx::Size.new(200,20)
+        triST = Wx::StaticText.new(self, -1, 'triangulate?', triSTPos, triSTSize, Wx::ALIGN_RIGHT)
+    	
+    	triCPos = Wx::Point.new(220,95)
+        triCSize = Wx::Size.new(70,20)
+        @triChoices = ['yes', 'no']
+        @triC = Wx::Choice.new(self, -1, triCPos, triCSize, @triChoices)
+        values["triangulate"] ? @triC.set_selection(0) : @triC.set_selection(1)
+        
+        ## site information box
+        siBoxPos = Wx::Point.new(10,140)
+        siBoxSize = Wx::Size.new(530,120)
+        siBox = Wx::StaticBox.new(self, -1, "site information", siBoxPos, siBoxSize, 0, "siBox")
+        
+        ## weather file
+    	weaSTPos = Wx::Point.new(10,165)
+        weaSTSize = Wx::Size.new(200,20)
+        weaST = Wx::StaticText.new(self, -1, 'weather file', weaSTPos, weaSTSize, Wx::ALIGN_RIGHT)
+        
+        weaTCPos = Wx::Point.new(220,165)
+        weaTCSize = Wx::Size.new(200,20)
+        @weaTC = Wx::TextCtrl.new(self, -1, values["weatherFilePath"], weaTCPos, weaTCSize, Wx::TE_LEFT)
+        
+        weaBPos = Wx::Point.new(430,165)
+        weaBSize = Wx::Size.new(100,20)
+        weaButton = Wx::Button.new(self, -1, 'choose', weaBPos, weaBSize, Wx::BU_BOTTOM)
+    	evt_button(weaButton.get_id()) {|e| on_weaButton(e)}
+    	
+    	## use present location?
+    	plSTPos = Wx::Point.new(10,195)
+        plSTSize = Wx::Size.new(200,20)
+        plST = Wx::StaticText.new(self, -1, 'use present location?', plSTPos, plSTSize, Wx::ALIGN_RIGHT)
+    	
+    	plCPos = Wx::Point.new(220,195)
+        plCSize = Wx::Size.new(70,20)
+        @plChoices = ['yes', 'no']
+        @plC = Wx::Choice.new(self, -1, plCPos, plCSize, @plChoices)
+        values["usePresentLocation"] ? @plC.set_selection(0) : @plC.set_selection(1)
+    	
+        ## timestep?
+    	tsSTPos = Wx::Point.new(10,225)
+        tsSTSize = Wx::Size.new(200,20)
+        tsST = Wx::StaticText.new(self, -1, 'timestep (minutes)', tsSTPos, tsSTSize, Wx::ALIGN_RIGHT)
+    	
+    	tsCPos = Wx::Point.new(220,225)
+        tsCSize = Wx::Size.new(70,20)
+        @tsChoices = ["60", "30", "15", "5", "1"]   
+        @tsC = Wx::Choice.new(self, -1, tsCPos, tsCSize, @tsChoices)
+        #values[3] ? @plC.set_selection(0) : @plC.set_selection(1)
+    	
+    	## simulation and analysis settings box
+        sasBoxPos = Wx::Point.new(10,270)
+        sasBoxSize = Wx::Size.new(530,300)
+        sasBox = Wx::StaticBox.new(self, -1, "simulation and analysis settings", sasBoxPos, sasBoxSize, 0, "sasBox")
+    	
+    	## radiance settings
+    	rsSTPos = Wx::Point.new(10,295)
+        rsSTSize = Wx::Size.new(200,20)
+        rsST = Wx::StaticText.new(self, -1, 'simulation detail', rsSTPos, rsSTSize, Wx::ALIGN_RIGHT)
+    	
+    	rsCPos = Wx::Point.new(220,295)
+        rsCSize = Wx::Size.new(100,20)
+        @rsChoices = ["low", "medium", "high", "very high"]   
+        @rsC = Wx::Choice.new(self, -1, rsCPos, rsCSize, @rsChoices)
+    	
+    	## occupant arrival time
+    	oatSTPos = Wx::Point.new(10,325)
+        oatSTSize = Wx::Size.new(200,20)
+        oatST = Wx::StaticText.new(self, -1, 'occupant arrival time', oatSTPos, oatSTSize, Wx::ALIGN_RIGHT)
+        
+        oatTCPos = Wx::Point.new(220,325)
+        oatTCSize = Wx::Size.new(45,20)
+        @oatTC = Wx::TextCtrl.new(self, -1, "08.00", oatTCPos, oatTCSize, Wx::TE_LEFT)
+    	
+    	## occupant departure time
+    	odtSTPos = Wx::Point.new(10,355)
+        odtSTSize = Wx::Size.new(200,20)
+        odtST = Wx::StaticText.new(self, -1, 'occupant departure time', odtSTPos, odtSTSize, Wx::ALIGN_RIGHT)
+        
+        odtTCPos = Wx::Point.new(220,355)
+        odtTCSize = Wx::Size.new(45,20)
+        @odtTC = Wx::TextCtrl.new(self, -1, "17.00", odtTCPos, odtTCSize, Wx::TE_LEFT)
+    	    	
+    	## lunch and breaks?
+    	labSTPos = Wx::Point.new(10,385)
+        labSTSize = Wx::Size.new(200,20)
+        labST = Wx::StaticText.new(self, -1, 'occupant lunch and breaks?', labSTPos, labSTSize, Wx::ALIGN_RIGHT)
+    	
+    	labCPos = Wx::Point.new(220,385)
+        labCSize = Wx::Size.new(70,20)
+        @labChoices = ['yes', 'no']
+        @labC = Wx::Choice.new(self, -1, labCPos, labCSize, @labChoices)
+    	
+    	## daylight savings time?
+    	dstSTPos = Wx::Point.new(10,415)
+        dstSTSize = Wx::Size.new(200,20)
+        dstST = Wx::StaticText.new(self, -1, 'daylight savings time?', dstSTPos, dstSTSize, Wx::ALIGN_RIGHT)
+    	
+    	dstCPos = Wx::Point.new(220,415)
+        dstCSize = Wx::Size.new(70,20)
+        @dstChoices = ['yes', 'no']
+        @dstC = Wx::Choice.new(self, -1, dstCPos, dstCSize, @dstChoices)
+    	
+    	## minimum illuminance level
+    	miSTPos = Wx::Point.new(10,445)
+        miSTSize = Wx::Size.new(200,20)
+        miST = Wx::StaticText.new(self, -1, 'minimum illumninance (lux)', miSTPos, miSTSize, Wx::ALIGN_RIGHT)
+        
+        miTCPos = Wx::Point.new(220,445)
+        miTCSize = Wx::Size.new(45,20)
+        @miTC = Wx::TextCtrl.new(self, -1, "500", miTCPos, miTCSize, Wx::TE_LEFT)
+    	
+    	## shading device type
+    	sdSTPos = Wx::Point.new(10,475)
+        sdSTSize = Wx::Size.new(200,20)
+        sdST = Wx::StaticText.new(self, -1, 'shading device type', sdSTPos, sdSTSize, Wx::ALIGN_RIGHT)
+    	
+    	sdCPos = Wx::Point.new(220,475)
+        sdCSize = Wx::Size.new(280,20)
+        @sdChoices = ["static (included in building geometry)", "dynamic (simple model)"]   
+        @sdC = Wx::Choice.new(self, -1, sdCPos, sdCSize, @sdChoices)
+    	
+    	## user blind use
+    	ubSTPos = Wx::Point.new(10,505)
+        ubSTSize = Wx::Size.new(200,20)
+        ubST = Wx::StaticText.new(self, -1, 'occupant blind use', ubSTPos, ubSTSize, Wx::ALIGN_RIGHT)
+    	
+    	ubCPos = Wx::Point.new(220,505)
+        ubCSize = Wx::Size.new(90,20)
+        @ubChoices = ["mixed", "active", "passive"]   
+        @ubC = Wx::Choice.new(self, -1, ubCPos, ubCSize, @ubChoices)
+    	
+    	## blind controL?
+    	bcSTPos = Wx::Point.new(10,535)
+        bcSTSize = Wx::Size.new(200,20)
+        bcST = Wx::StaticText.new(self, -1, 'blind control type', bcSTPos, bcSTSize, Wx::ALIGN_RIGHT)
+    	
+    	bcCPos = Wx::Point.new(220,535)
+        bcCSize = Wx::Size.new(105,20)
+        @bcChoices = ["no blinds", "manual", "automatic"]   
+        @bcC = Wx::Choice.new(self, -1, bcCPos, bcCSize, @bcChoices)
+    	
+    	
+    	## okay and cancel buttons
+        okBPos = Wx::Point.new(220,580)
+        okBSize = Wx::Size.new(100,20)
+        okButton = Wx::Button.new(self, Wx::ID_OK, 'okay', okBPos, okBSize, Wx::BU_BOTTOM)
+    		
+    	## cancel button
+        canBPos = Wx::Point.new(110,580)
+        canBSize = Wx::Size.new(100,20)
+        canButton = Wx::Button.new(self, Wx::ID_CANCEL, 'cancel', canBPos, canBSize, Wx::BU_BOTTOM)
+    	
+	end
+	
+	## method for button that chooses location of project directory
+	def on_pdButton(e)
+	    	    
+	    dd = Wx::DirDialog.new(self, "choose project directory", @pdTC.get_value())
+	    if dd.show_modal == 5100
+	        @pdTC.set_value(dd.get_path)
+        else
+            return
+        end
+        
+    end # on_pdButton
+	
+	## method for button that chooses location of weather file
+	def on_weaButton(e)
+	    
+	    begin ##############
+	    
+	    weaPath = @weaTC.get_value()
+	    fileName = File.basename(weaPath)
+	    (fileName.split(/\./).length > 1) ? (fileExt = fileName.split(/\./)[1].strip) : fileExt = ''
+	    if fileExt == 'epw'
+	        fileTypes = "EPW files (*.epw)|*.epw|WEA files (*.wea)|*.wea"
+        else
+            fileTypes = "WEA files (*.wea)|*.wea|EPW files (*.epw)|*.epw"
+        end
+	    dirName = File.dirname(weaPath)
+	    	    
+	    fd = Wx::FileDialog.new(self, "choose weather file", dirName, fileName, fileTypes)
+	    if fd.show_modal == 5100
+	        @weaTC.set_value(fd.get_path)
+        else
+            return
+        end
+        
+        rescue => e ########
+            puts e #########
+        end ################
+        
+    end # on_weaButton    
+	
+	## method to be executed when "OK" button selected; returns values in array format
+    def getValues
+        #values = []
+        #values << @pdTC.get_value()
+        #values << @pnTC.get_value()
+        #values << @weaTC.get_value()
+        #values << (@plC.get_selection == 0) ? true : false
+        #values << (@triC.get_selection == 0) ? true : false
+        
+        values = {  "projectDirectory" => @pdTC.get_value(),
+                    "projectName" => @pnTC.get_value(),
+                    "weatherFilePath" => @weaTC.get_value(),
+                    "usePresentLocation" => (@plC.get_selection == 0) ? true : false,
+                    "triangulate" => (@triC.get_selection == 0) ? true : false, 
+                    "timestep" => @tsChoices[@tsC.get_selection],
+                    "radSettings" => @rsC.get_selection,
+                    "occupantArrival" => @oatTC.get_value(),
+                    "occupantDeparture" => @odtTC.get_value(),
+                    "lunchAndBreaks" => (@labC.get_selection == 0) ? "0" : "1",
+                    "minIllLevel" => @miTC.get_value(),
+                    "dst" => (@dstC.get_selection == 0) ? "1" : "0",
+                    "blindUse" => @ubC.get_selection,
+                    "shading" => @sdC.get_selection,
+                    "blindControl" => @bcC.get_selection }
+        return values
+    end 
+	
+end # SimOptionsWXUI
 
 ## this is the WX code for an improved location dialog
 class LocationWXUI < Wx::Dialog

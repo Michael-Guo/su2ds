@@ -262,6 +262,22 @@ end
 # end
 
 # FOR DEBUGGING
+def showSimDialog
+    #values = ['/Users/macuser/Desktop', 'project', '/Users/macuser/Desktop/weather.wea', true, false]
+    values = {  "projectDirectory" => '/Users/macuser/Desktop', 
+                "projectName" => 'project',
+                "weatherFilePath" => '/Users/macuser/Desktop/weather.wea',
+                "usePresentLocation" => true,
+                "triangulate" => false }    
+    ed = SU2DS::SimOptionsWXUI.new(values)
+    if ed.show_modal == 5100
+        puts ed.getValues
+    else
+        puts "export cancelled"
+    end
+end
+
+# FOR DEBUGGING
 # def showPointsDialog
 #     values = ['points', 0.5]
 #     pd = SU2DS::PointsWXUI.new(values)

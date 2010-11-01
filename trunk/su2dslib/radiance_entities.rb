@@ -419,12 +419,12 @@ class RadiancePolygon < ExportBase
             text = ''
             count = 0
             @triangles.each { |points|
-                text += getPolygon(points, count, trans)
+                getPolygon(points, count, trans)
                 count += 1
             }
         else
             points = @verts.collect { |v| v.position }
-            text = getPolygon(points, 0, trans)
+            getPolygon(points, 0, trans)
         end
         return text       
     end
@@ -443,7 +443,6 @@ class RadiancePolygon < ExportBase
             uimessage("new material for 'by Color': '#{matname}'")
         end
         $geometryHash[matname].push(poly)
-        
     end
     
     def getNumericPoints

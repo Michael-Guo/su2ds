@@ -84,88 +84,102 @@ class RadianceScene < ExportBase
             $export_dir = path[0..-5]
         end
     end
-   
-    # def confirmExportDirectory
-    #     ## show user dialog for export options
-    #     ud = UserDialog.new() 
-    #     ud.addOption("project directory", $export_dir)
-    #     ud.addOption("project name", $project_name)
-    #     ud.addOption("weather file", $weather_file_path) ## added for su2ds
-    #     ud.addOption("use present location", true) ## added for su2ds
-    #     ud.addOption("triangulate", $TRIANGULATE)
-    #     
-    #     if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-    #         $export_dir = ud.results[0] 
-    #         $project_name = ud.results[1]
-    #         if not confirmWeatherFile(ud.results[2]) ## added for su2ds; confirms weather file information
-    #             uimessage('export canceled')
-    #             return false
-    #         end
-    #         if not ud.results[3] ## added for su2ds; calls location dialogue if user says not to use present location
-    #             begin
-    #                 ld = LocationDialog.new()
-    #                 ld.show()
-    #             rescue => e 
-    #                 msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-    #                 UI.messagebox msg            
-    #             end
-    #         end
-    #         $TRIANGULATE = ud.results[4]
-    #  
-    #         ## note: overwrite confirmation moved to within confirmWeatherFile
-    #     else
-    #         uimessage('export canceled')
-    #         return false
-    #     end
-    #     
-    #     ## use test directory in debug mode
-    #     if $DEBUG and  $testdir != ''
-    #         $export_dir = $testdir
-    #         scene_dir = "#{$export_dir}/#{$project_name}"
-    #         if FileTest.exists?(scene_dir)
-    #             system("rm -rf #{scene_dir}")
-    #         end
-    #     end
-    #     if $export_dir[-1,1] == '/'
-    #         $export_dir = $export_dir[0,$export_dir.length-1]
-    #     end
-    #     return true
-    # end
     
-    def confirmExportDirectory
-        ## show user dialog for export options
-        values = [$export_dir, $project_name, $weather_file_path, true, $TRIANGULATE]
-
-        ed = SU2DS::ExportOptionsWXUI.new(values)
-        if ed.show_modal == 5100
-            results = ed.getValues
-            $export_dir = results[0]
-            $project_name = results[1]
-            if not confirmWeatherFile(results[2])
+    ## show user dialog for export options
+    ## different dialogs shown for "export" and "simulation" modes
+    def confirmExportDirectory(mode)
+        
+        if (mode == EMODE_HEADER)
+            #values = [$export_dir, $project_name, $weather_file_path, true, $TRIANGULATE]
+            values = {  "projectDirectory" => $export_dir, 
+                        "projectName" => $project_name,
+                        "weatherFilePath" => $weather_file_path,
+                        "usePresentLocation" => true,
+                        "triangulate" => $TRIANGULATE }
+            
+            ed = SU2DS::ExportOptionsWXUI.new(values)
+            if ed.show_modal == 5100
+                results = ed.getValues
+                $export_dir = results["projectDirectory"]
+                $project_name = results["projectName"]
+                if not confirmWeatherFile(results["weatherFilePath"])
+                    uimessage('export cancelled')
+                    return false
+                end
+                if not results["usePresentLocation"]
+                    begin
+                        ld = LocationDialog.new()
+                        ld.show
+                    rescue => e
+                        msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+                        UI.messagebox msg
+                    end
+                end
+                $TRIANGULATE = results["triangulate"]
+            else
                 uimessage('export cancelled')
                 return false
             end
-            if not results[3]
-                begin
-                    ld = LocationDialog.new()
-                    ld.show
-                rescue => e
-                    msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
-                    UI.messagebox msg
-                end
+        
+            if $export_dir[-1,1] == '/'
+                $export_dir = $export_dir[0,$export_dir.length-1]
             end
-            $TRIANGULATE = results[4]
-        else
-            uimessage('export cancelled')
-            return false
-        end
         
-        if $export_dir[-1,1] == '/'
-            $export_dir = $export_dir[0,$export_dir.length-1]
-        end
+            return true
         
-        return true                
-    end
+        elsif (mode == EMODE_SIM)
+            
+            #values = [$export_dir, $project_name, $weather_file_path, true, $TRIANGULATE]
+            values = {  "projectDirectory" => $export_dir, 
+                        "projectName" => $project_name,
+                        "weatherFilePath" => $weather_file_path,
+                        "usePresentLocation" => true,
+                        "triangulate" => $TRIANGULATE }
+            
+            ed = SU2DS::SimOptionsWXUI.new(values)
+            if ed.show_modal == 5100
+                results = ed.getValues
+                $export_dir = results["projectDirectory"]
+                $project_name = results["projectName"]
+                ## note: overwrite of existing files confirmed in confirmWeatherFile method
+                ## rad, tmp, and res directories also created there
+                if not confirmWeatherFile(results["weatherFilePath"])
+                    uimessage('export cancelled')
+                    return false
+                end
+                if not results["usePresentLocation"]
+                    begin
+                        ld = LocationDialog.new()
+                        ld.show
+                    rescue => e
+                        msg = "%s\n\n%s" % [$!.message,e.backtrace.join("\n")]
+                        UI.messagebox msg
+                    end
+                end
+                $TRIANGULATE = results["triangulate"]
+                @timestep = results["timestep"]                
+                @radSettings = results["radSettings"]
+                @occupantArrival = results["occupantArrival"]
+                @occupantDeparture = results["occupantDeparture"]
+                @lunchAndBreaks = results["lunchAndBreaks"]
+                @minIllLevel = results["minIllLevel"]
+                @dst = results["dst"]
+                @blindUse = results["blindUse"]
+                @shading = results["shading"]
+                @blindControl = results["blindControl"]          
+            else
+                uimessage('export cancelled')
+                return false
+            end
+        
+            if $export_dir[-1,1] == '/'
+                $export_dir = $export_dir[0,$export_dir.length-1]
+            end
+        
+            return true
+
+        end # if                    
+    end # confirmExportDirectory
     
     ## new for su2ds
     def confirmWeatherFile(path)
@@ -176,7 +190,9 @@ class RadianceScene < ExportBase
                     return false                                            
                 end                                                         
                 createDirectory("#{$export_dir}/#{$project_name}")
-                
+                createDirectory("#{$export_dir}/#{$project_name}/rad")
+                createDirectory("#{$export_dir}/#{$project_name}/tmp")
+                createDirectory("#{$export_dir}/#{$project_name}/res")
                 ## write new files
                 name = File.basename(path)
                 newpath = getFilename("#{name}")
@@ -213,7 +229,9 @@ class RadianceScene < ExportBase
                         return false                                            
                     end                                                         
                     createDirectory("#{$export_dir}/#{$project_name}")
-                    
+                    createDirectory("#{$export_dir}/#{$project_name}/rad")
+                    createDirectory("#{$export_dir}/#{$project_name}/tmp")
+                    createDirectory("#{$export_dir}/#{$project_name}/res")
                     ## write new files
                     if convertEPW(path)
                         $weather_file = "#{File.basename(path)[0..-5]}.wea"
@@ -289,23 +307,6 @@ class RadianceScene < ExportBase
         end
     end
     
-    ## new for su2ds
-    # def confirmPointsExportOptions ## old method without WX dialog
-    #     ## show user dialog for export options
-    #     ud = UserDialog.new() 
-    #     ud.addOption("polygon layer", $points_layer)
-    #     ud.addOption("spacing (m)", $point_spacing.to_s)
-    #     if ud.show('export options') == true   ## this bit reads the results of the user dialogue
-    #         $points_layer = ud.results[0]
-    #         $point_spacing = ud.results[1].to_f
-    #     else
-    #         uimessage('export canceled')
-    #         return false
-    #     end
-    #     
-    #     return true
-    # end
-    
     ## show user dialog for export options
     def confirmPointsExportOptions
         values = [$points_layer, $point_spacing]
@@ -338,7 +339,7 @@ class RadianceScene < ExportBase
             point_text = []
         end
         
-        if not confirmExportDirectory
+        if not confirmExportDirectory(mode)
             return # removeExisting prompts user if overwrite is necessary; returns false if the user cancels
         end
                    
@@ -354,7 +355,7 @@ class RadianceScene < ExportBase
         Sketchup.active_model.set_attribute("modelData", "projectName", $project_name) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "exportDir", $export_dir) ## added for su2ds
         Sketchup.active_model.set_attribute("modelData", "weatherFile", $weather_file_path) ## added for su2ds
-        writeHeaderFile() ## writes DAYSIM header file; added for su2ds
+        writeHeaderFile(mode) ## writes DAYSIM header file; added for su2ds
         writeLogFile()
         UI.messagebox("Export complete!", MB_OK)
     end
@@ -395,48 +396,194 @@ class RadianceScene < ExportBase
     end
     
     ## new for su2ds
-    def writeHeaderFile
-        ## create text for header file
-        s = Sketchup.active_model.shadow_info
-        text = ""
-        text += "#######################\n"
-        text += "# DAYSIM HEADER FILE\n"
-        text += "# created by su2ds at #{Time.now.asctime}\n"
-        text += "#######################\n\n"
-        text += "project_name              #{$project_name}\n"
-        text += "project_directory         #{$export_dir}\\#{$project_name}\\\n"
-        text += "bin_directory             #{$DAYSIM_BIN_DIR}\\\n"
-        text += "material_directory        #{$DAYSIM_MAT_DIR}\\\n"
-        text += "tmp_directory             #{$export_dir}\\#{$project_name}\\tmp\\\n\n"
-        text += "#######################\n"
-        text += "# site information\n"
-        text += "#######################\n"
-        text += "place                     #{s['City']}\n"
-        text += "latitude                  #{s['Latitude']}\n"
-        text += "longitude                 #{s['Longitude']}\n"
-        text += "time_zone                 #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
-        text += "site_elevation            #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
-        text += "ground_reflectance        0.2\n"
-        text += "wea_data_file             #{$weather_file}\n"
-        text += "wea_data_file_units       1\n"
-        text += "first_weekday             1\n"
-        text += "time_step                 60\n"
-        text += "wea_data_short_file       #{$weather_file}\n"
-        text += "wea_data_short_file_units 1\n"
-        text += "lower_direct_threshold    2\n"
-        text += "lower_diffuse_threshold   2\n"
-        text += "output_units              2\n\n"
-        text += "#######################\n"
-        text += "# building information\n"
-        text += "#######################\n"
-        text += "material_file             #{$project_name}_material.rad\n"
-        text += "geometry_file             #{$project_name}_geometry.rad\n"
-        text += "scene_rotation_angle      #{s['NorthAngle']}\n"
-        text += "sensor_file               #{$project_name}.pts\n"
-        text += "radiance_source_files     1,#{$project_name}.rad\n"
-        text += "shading                   1\n"  ## "1" specifies static shading geometry
-        text += "static_system             res/#{$project_name}.dc res/#{$project_name}.ill\n" ## note this line not necessary if previous line = 0
-        text += "ViewPoint                 0\n"
+    def writeHeaderFile(mode)
+        
+        ## radiance settings arrays 
+        ## arrays in form [lowSetting, mediumSetting, highSetting, veryHighSetting]
+        ab = ["3", "4", "5", "6"]
+        ad = ["500", "750", "1000", "1500"]
+        as = ["0", "10", "20", "40"]
+        ar = ["100", "200", "300", "600"]
+        aa = ["0.2", "0.15", "0.1", "0.05"]        
+        
+        ## check header file mode -- just export, or simulation
+        if (mode == EMODE_HEADER)
+               
+            ## create text for header file (export mode)
+            s = Sketchup.active_model.shadow_info
+            text = ""
+            text += "############################\n"
+            text += "# DAYSIM HEADER FILE\n"
+            text += "# created by su2ds at #{Time.now.asctime}\n"
+            text += "############################\n\n"
+            text += "project_name              #{$project_name}\n"
+            text += "project_directory         #{$export_dir}\\#{$project_name}\\\n"
+            text += "bin_directory             #{$DAYSIM_BIN_DIR}\\\n"
+            text += "material_directory        #{$DAYSIM_MAT_DIR}\\\n"
+            text += "tmp_directory             #{$export_dir}\\#{$project_name}\\tmp\\\n\n"
+            text += "############################\n"
+            text += "# site information\n"
+            text += "############################\n"
+            text += "place                     #{s['City']}\n"
+            text += "latitude                  #{s['Latitude']}\n"
+            text += "longitude                 #{s['Longitude']}\n"
+            text += "time_zone                 #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
+            text += "site_elevation            #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
+            text += "ground_reflectance        0.2\n"
+            text += "wea_data_file             #{$weather_file}\n"
+            text += "wea_data_file_units       1\n"
+            text += "first_weekday             1\n"
+            text += "time_step                 60\n"
+            text += "wea_data_short_file       #{$weather_file}\n"
+            text += "wea_data_short_file_units 1\n"
+            text += "lower_direct_threshold    2\n"
+            text += "lower_diffuse_threshold   2\n"
+            text += "output_units              2\n\n"
+            text += "############################\n"
+            text += "# building information\n"
+            text += "############################\n"
+            text += "material_file             #{$project_name}_material.rad\n"
+            text += "geometry_file             #{$project_name}_geometry.rad\n"
+            text += "scene_rotation_angle      #{s['NorthAngle']}\n"
+            text += "sensor_file               #{$project_name}.pts\n"
+            text += "radiance_source_files     1,#{$project_name}.rad\n"
+            text += "shading                   1\n"  ## "1" specifies static shading geometry
+            text += "static_system             res/#{$project_name}.dc res/#{$project_name}.ill\n" ## note this line not necessary if previous line = 0
+            text += "ViewPoint                 0\n"
+        
+        elsif (mode = EMODE_SIM)
+            
+            ## create text for header file (simulation mode)
+            s = Sketchup.active_model.shadow_info
+            text = ""
+            text += "############################\n"
+            text += "# DAYSIM HEADER FILE\n"
+            text += "# created by su2ds at #{Time.now.asctime}\n"
+            text += "############################\n\n"
+            text += "project_name              #{$project_name}\n"
+            text += "project_directory         #{$export_dir}/#{$project_name}/\n"
+            text += "bin_directory             #{File.dirname(File.expand_path(__FILE__))}/bin/\n" ## bin directory in su2dslib
+            text += "material_directory        #{File.dirname(File.expand_path(__FILE__))}/mat/\n"
+            text += "tmp_directory             #{$export_dir}/#{$project_name}/tmp/\n\n"
+            text += "############################\n"
+            text += "# site information\n"
+            text += "############################\n"
+            text += "place                     #{s['City']}\n"
+            text += "latitude                  #{s['Latitude']}\n"
+            text += "longitude                 #{s['Longitude']}\n"
+            text += "time_zone                 #{s['TZOffset']*15}\n"  ## note: TZoffset multiplied by 15 to convert to Daysim timezone format
+            text += "site_elevation            #{Sketchup.active_model.get_attribute("modelData","elevation",0)}\n"
+            text += "ground_reflectance        0.2\n"
+            text += "wea_data_file             #{$weather_file}\n"
+            text += "wea_data_file_units       1\n"
+            text += "first_weekday             1\n"
+            text += "time_step                 #{@timestep}\n"
+            text += "wea_data_short_file       #{$weather_file[0..-5]}_#{@timestep}min.wea\n"
+            text += "wea_data_short_file_units 1\n"
+            text += "lower_direct_threshold    2\n"
+            text += "lower_diffuse_threshold   2\n"
+            text += "output_units              2\n\n"
+            text += "############################\n"
+            text += "# building information\n"
+            text += "############################\n"
+            text += "material_file             #{$project_name}_material.rad\n"
+            text += "geometry_file             #{$project_name}_geometry.rad\n"
+            text += "scene_rotation_angle      #{s['NorthAngle']}\n"
+            text += "sensor_file               #{$export_dir}/#{$project_name}/#{$project_name}.pts\n"
+            text += "radiance_source_files     1,#{$export_dir}/#{$project_name}/#{$project_name}.rad\n"
+            if (@shading == 0)
+            text += "shading                   1\n" 
+            text += "static_system             res/#{$project_name}.dc res/#{$project_name}.ill\n" ## note this line not necessary if previous line = 0
+            elsif (@shading == 1)
+            text += "shading                   0\n"
+            text += "dynamic_simple            res/#{$project_name}.dc res/#{$project_name}.ill res/#{$project_name}_down.ill\n"
+            end
+            text += "ViewPoint                 0\n"
+            text += "output_unit_index         1\n"
+            text += "display_unit_index        1\n\n"
+            text += "############################\n"
+            text += "# RADIANCE parameters\n"
+            text += "############################\n"
+            text += "ab #{ab[@radSettings]}\n"
+            text += "ad #{ad[@radSettings]}\n"
+            text += "as #{as[@radSettings]}\n"
+            text += "ar #{ar[@radSettings]}\n"
+            text += "aa #{aa[@radSettings]}\n"
+            text += "lr 6\n"
+            text += "st 0.15\n"
+            text += "sj 1\n"
+            text += "lw 0.004\n"
+            text += "dj 0\n"
+            text += "ds 0.2\n"
+            text += "dr 2\n"
+            text += "dp 512\n\n"
+            text += "############################\n"
+            text += "# Analysis information\n"
+            text += "############################\n\n"
+            text += "    ============================\n"
+            text += "    = daylighting results\n"
+            text += "    ============================\n"
+            text += "    daylight_factor                          res/#{$project_name}.df\n"
+            text += "    daylight_autonomy                        res/#{$project_name}.da\n"
+            text += "    electric_lighting                        res/#{$project_name}.el.htm\n"
+            text += "    direct_sunlight_file                     res/#{$project_name}.dir\n"
+            text += "    thermal_simulation                       res/#{$project_name}.intgain.csv\n"
+            text += "    percentage_visible_sky_file              res/#{$project_name}.sky_view.dat\n"
+            text += "    daylight_factor_RGB                      res/#{$project_name}.daylight_factor.DA\n"
+            if (@shading == 0)
+            text += "    daylight_availability_active_RGB         res/#{$project_name}.daylight_availability.DA\n"
+            text += "    daylight_autonomy_active_RGB             res/#{$project_name}.daylight_autonomy.DA\n"
+            text += "    continuous_daylight_autonomy_active_RGB  res/#{$project_name}.continuous_daylight_autonomy.DA\n"
+            text += "    DA_max_active_RGB                        res/#{$project_name}.DA_max.DA\n"
+            text += "    UDI_100_active_RGB                       res/#{$project_name}.UDI_100.DA\n"
+            text += "    UDI_100_2000_active_RGB                  res/#{$project_name}.UDI_100_2000.DA\n"
+            text += "    UDI_2000_active_RGB                      res/#{$project_name}.UDI_2000.DA\n"
+            text += "    DSP_active_RGB                           res/#{$project_name}.DaylightSaturationPercentage.DA\n"
+            elsif (@shading == 1)
+            text += "    daylight_availability_active_RGB         res/#{$project_name}.daylight_availability.active.DA\n"
+            text += "    daylight_availability_passive_RGB        res/#{$project_name}.daylight_availability.passive.DA\n"
+            text += "    daylight_autonomy_active_RGB             res/#{$project_name}.daylight_autonomy.active.DA\n"
+            text += "    daylight_autonomy_passive_RGB            res/#{$project_name}.daylight_autonomy.passive.DA\n"
+            text += "    continuous_daylight_autonomy_active_RGB  res/#{$project_name}.continuous_daylight_autonomy.active.DA\n"
+            text += "    continuous_daylight_autonomy_passive_RGB res/#{$project_name}.continuous_daylight_autonomy.passive.DA\n"
+            text += "    DA_max_active_RGB                        res/#{$project_name}.DA_max.active.DA\n"
+            text += "    DA_max_passive_RGB                       res/#{$project_name}.DA_max.passive.DA\n"
+            text += "    UDI_100_active_RGB                       res/#{$project_name}.UDI_100.active.DA\n"
+            text += "    UDI_100_passive_RGB                      res/#{$project_name}.UDI_100.passive.DA\n"
+            text += "    UDI_100_2000_active_RGB                  res/#{$project_name}.UDI_100_2000.active.DA\n"
+            text += "    UDI_100_2000_passive_RGB                 res/#{$project_name}.UDI_100_2000.passive.DA\n"
+            text += "    UDI_2000_active_RGB                      res/#{$project_name}.UDI_2000.active.DA\n"
+            text += "    UDI_2000_passive_RGB                     res/#{$project_name}.UDI_2000.passive.DA\n"
+            text += "    DSP_active_RGB                           res/#{$project_name}.DaylightSaturationPercentage.active.DA\n"
+            text += "    DSP_passive_RGB                          res/#{$project_name}.DaylightSaturationPercentage.passive.DA\n"
+            end    
+            text += "\n"
+            text += "    zone_description                         \"zone\"\n"
+            text += "    zone_area                                0.0\n\n"
+            text += "    ============================\n"
+            text += "    = user description\n"
+            text += "    ============================\n"
+            text += "    occupancy                                #{@lunchAndBreaks} #{@occupantArrival} #{@occupantDeparture}\n"
+            text += "    minimum_illuminance_level                #{@minIllLevel}\n"
+            text += "    daylight_savings_time                    #{@dst}\n"
+            if (@blindUse == 0)
+            text += "    user_profile                             2\n"
+            text += "        passive_light_active__blind          50  2 1\n"
+            text += "        passive_light_passive_blind          50  2 2 #{@shading}\n" # by glorious cooincidence, @shading can be inserted directly here.       
+            elsif (@blindUse == 1)
+            text += "    user_profile                             1\n"
+            text += "        passive_light_active__blind          100 2 1\n"
+            elsif (@blindUse == 2)
+            text += "    user_profile                             1\n"
+            text += "        passive_light_passive_blind          100 2 2 #{@shading}\n"
+            end
+            text += "\n"
+            text += "    ============================\n"
+            text += "    = blind control system\n"
+            text += "    ============================\n"
+            text += "    blind_control                            1\n"
+            text += "        #{@blindControl}"
+        end
         
         ## write header file
         name = $project_name
