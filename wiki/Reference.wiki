@@ -1,4 +1,4 @@
-#Collection of useful tidbits to remember in the multi-year gaps between when I work on this
+#summary Collection of useful tidbits to remember in the multi-year gaps between when I work on this
 
 == DAYSIM subprograms ==
 
