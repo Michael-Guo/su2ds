@@ -2,7 +2,7 @@
 
 = DAYSIM subprograms =
 
-[http://web.mit.edu/SustainableDesignLab/projects/Daysim/Daysim_flowchart.html]Great resource for understanding how programs link together
+[http://web.mit.edu/SustainableDesignLab/projects/Daysim/Daysim_flowchart.html Great resource for understanding how programs link together]
 
 *radfiles2daysim*
 To work, needs to be run with three completely undocumented switches, a la:
