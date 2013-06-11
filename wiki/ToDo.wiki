@@ -16,6 +16,8 @@ TODO
 
 === Long term ===
 
-  * probably the biggest priority: reconfiguring the way results are displayed; the way its done now is extremely slow and cumbersome
+  * probably the biggest priority: reconfiguring the way results are displayed; the way its done now is extremely slow and cumbersome. Also constrains meshing to square grids. 
   * second priority: rewriting the geometry export; again, it's pretty byzantine and, I think, unnecessarily complicated; makes maintenance damn near impossible as I never fully understood how it worked in the first place
-  * third priority: the UI menus should be rewritten in javascript; wxSU isn't being developed at all anymore, and who knows how long its going to work for
+  * third priority: meshing; pretty crude, and dependance on actual Sketchup elements for display is cumbersome (but possibly necessary?) 
+  * fourth priority: the UI menus should be rewritten in javascript; wxSU isn't being developed at all anymore, and who knows how long its going to work for. Already seems to be having trouble on Windows 8 with multiple displays
+ 
