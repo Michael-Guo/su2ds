@@ -8,6 +8,8 @@ Dusted this baby off to do a few simulations and found it not really functional 
 
 TODO
   * remove "daysim materials directory" from preferences menu
+  * get slashes figured out
+  * take stock of all the lighting and blinds options and figure out (a) if they're working, and, if not, (b) what to do with them
   * remove DAYSIM version from preferences
     * this is a relic of the scene rotation option being added in the GUI in DAYSIM 3.0. Since this version will no longer use the GUI, the scene rotation options need to be retained in this version. Although it's probably worthwhile (and less work) to retain the ability to select the DAYSIM version in the preferences, for the time being I should just disconnect it from doing anything useful, and just set it to v 2.1 behaviour by default
     * maybe grey this option out in the menu for the time being?
